@@ -1,0 +1,145 @@
+#!/usr/bin/python
+
+import argparse
+import math
+import os
+import subprocess
+
+def _cmd(cmd_str):
+    """Runs the given cmd_str and returns its output as a list of strs."""
+    rawdata = subprocess.Popen(cmd_str, shell=True, stdout=subprocess.PIPE).stdout.read()
+    return rawdata.decode('ISO-8859-1').split('\n')
+
+def _substr(str, start, end):
+    return str[str.find(start) + len(start):str.find(end)]
+
+def gnuplot_exec(cmds):
+    """Runs gnuplot with the given cmds."""
+    args = ['gnuplot', '-e', (';'.join([str(c) for c in cmds]))]
+    return subprocess.Popen(args)
+
+def plot_activity(data, periods, out_filename):
+    """Plots activity data (first part)."""
+    cmds = [
+        'set title "Activity periods (%s periods)"' % periods,
+        'set xlabel "Time (ms)"',
+        'set noytics',
+        'set xtics 10',
+        'set key below',
+        'set key autotitle columnhead nobox title "  "',
+        'set term postscript eps color solid',
+        'set size 0.75,0.45',
+        'set output "%s_activity.eps"' % out_filename
+    ]
+
+    # Generate actual boxes based on data
+    # set object N rect from x0, y0 to x1, y1 <fill>
+    last = 0
+    to = 0
+    for i in range(len(data)):
+        line = data[i]
+        if not (line.startswith('Active') or line.startswith('Inactive')):
+            continue
+        to += float(_substr(line, '(', ' ms)'))
+        color = 'blue' if line.startswith('Active') else 'red'
+        cmds.append('set object %d rect from %f, 1 to %f, 2 fc rgb "%s" fs solid noborder' % (i+1, last, to, color))
+        last = to
+
+    cmds.append('plot [0:%d] [0:3] NaN title "Active" linecolor rgb "blue" lw 6, NaN title "Inactive" linecolor rgb "red" lw 6' % math.ceil(to))
+
+    gnuplot_exec(cmds)
+
+def plot_context(data, periods, out_filename):
+    """Plots context switching data (second part)."""
+    cmds = [
+        'set title "Context switch activity periods (%s periods)"' % periods,
+        'set xlabel "Time (ms)"',
+        'set noytics',
+        'set xtics 10',
+        'set key below',
+        'set key autotitle columnhead nobox title "  "',
+        'set term postscript eps color solid',
+        'set size 1,0.75',
+        'set output "%s_context.eps"' % out_filename
+    ]
+
+    parent_times = []
+    child_times = []
+
+    for line in data:
+        if not (line.startswith('Active') or line.startswith('Inactive')):
+            continue
+        if line.startswith('Active parent') or line.startswith('Inactive parent'):
+            parent_times.append(line)
+        else:
+            child_times.append(line)
+
+    total_times = len(parent_times) + len(child_times)
+
+    i = 0
+    cur_parent = 0
+    cur_child = 0
+    last = 0
+    to = 0
+    last_parent = 0
+    was_child = False
+    was_parent = False
+    while i < total_times:
+        isChild = cur_child < len(child_times) and cur_parent < len(parent_times) \
+            and int(_substr(child_times[cur_child], 'start at ', ', duration')) >= int(_substr(parent_times[cur_parent], 'start at ', ', duration')) \
+            and (cur_parent == len(parent_times) - 1 or int(_substr(child_times[cur_child], 'start at ', ', duration')) < int(_substr(parent_times[cur_parent+1], 'start at ', ', duration')))
+
+        line = child_times[cur_child] if isChild else parent_times[cur_parent]
+
+        if isChild:
+            cur_child += 1
+            was_child = True
+            if was_parent:
+                last_parent = last
+                was_parent = False
+        else:
+            cur_parent += 1
+
+            # "Reset" to where we switched
+            if was_child:
+                to = last_parent
+                last = last_parent
+                was_child = False
+
+            was_parent = True
+
+        to += float(_substr(line, '(', ' ms)'))
+        if isChild:
+            color = 'green' if line.startswith('Active') else 'orange'
+        else:
+            color = 'blue' if line.startswith('Active') else 'red'
+        x = 1 if isChild else 3
+        cmds.append('set object %d rect from %f, %d to %f, %d fc rgb "%s" fs solid noborder' % (i+1, last, x, to, x+1, color))
+        last = to
+
+        i+=1
+
+    cmds.append('plot [0:%d] [0:5] NaN title "Active (Parent)" linecolor rgb "blue" lw 6, NaN title "Inactive (Parent)" linecolor rgb "red" lw 6, NaN title "Active (Child)" linecolor rgb "green" lw 6, NaN title "Inactive (Child)" linecolor rgb "orange" lw 6' % math.ceil(to))
+
+    gnuplot_exec(cmds)
+
+
+if __name__ == '__main__':
+    argparser = argparse.ArgumentParser(description='Script to run part A experiment and generate a graph.')
+    argparser.add_argument('-o', '--output', help='The output EPS file name. Defaults to "parta".', default='parta')
+    argparser.add_argument('-a', '--activity', help='Number of periods for activity to run for. Defaults to 10.', default='10')
+    argparser.add_argument('-c', '--context', help='Number of periods for context switch to run for. Defaults to 10.', default='10')
+    args = argparser.parse_args()
+
+    output = args.output.strip()
+
+    # Compile program
+    _cmd('make')
+
+    # Invoke the activity data gathering program and graph
+    data = _cmd('./activity %s' % args.activity)
+    plot_activity(data, args.activity, output)
+
+    # Invoke context switch data gathering program and graph
+    context_data = _cmd('./ContextSwitch %s' % args.context)
+    plot_context(context_data, args.context, output)

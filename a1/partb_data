@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+import argparse
+import os
+import random
+import subprocess
+import time
+
+
+class Test:
+    def _cmd(self, cmd_str):
+        """Runs the given cmd_str and returns its output as a list of strs."""
+        rawdata = subprocess.Popen(cmd_str, shell=True, stdout=subprocess.PIPE).stdout.read()
+        return rawdata.decode('ISO-8859-1').split('\n')
+
+    def _check_hardware(self):
+        """Gets list of free space on the 4 nodes."""
+        data = self._cmd('numactl --hardware')
+
+        # From "node 0 free: 3889 MB", get "3889"
+        return [line[13:-3] for line in data if ' free:' in line]
+
+    def _run_stream(self, cpu):
+        """Runs numactl on the specified CPU."""
+        command = 'numactl --membind 0 --physcpubind %s /u/csc469h/fall/pub/assgn1/bin/mccalpin-stream'
+        data = self._cmd(command % cpu)
+
+        if 'Solution Validates' not in data[-3]:
+            exit(1)
+
+        return [line.split()[1:] for line in data[-8:-4]]
+
+    def run(self, cpu):
+        """Runs benchmarking test"""
+        hardware = self._check_hardware()
+        stream = self._run_stream(cpu)
+
+        return ','.join([str(cpu), str(time.time())] + hardware + sum(stream, []))
+
+
+if __name__ == '__main__':
+    argparser = argparse.ArgumentParser(description='Script to gather data with numactl.')
+    argparser.add_argument('-o', '--output', help='The output file name. Prints to stderr if not present.')
+
+    args = argparser.parse_args()
+
+    # Measure actual costs of accessing a memory node from different CPUs in the system
+    # Arbitrarily choose some CPU from each node:
+    # Node 0: 0-11
+    # Node 2: 12-23
+    # Node 4: 24-35
+    # Node 6: 36-47
+
+    cpus = [random.randint(0,11), random.randint(12,23), random.randint(24,35), random.randint(36,47)]
+    data = []
+
+    file_exists = args.output and os.path.isfile(args.output)
+
+    # CSV header
+    if not file_exists:
+        data.append('CPU,Time,N0 free,N2 free,N4 free,N6 free,Copy: Best,Copy: Avg,Copy: Min,Copy: Max,Scale: Best,Scale: Avg,Scale: Min,Scale: Max,Add: Best,Add: Avg,Add: Min,Add: Max,Triad: Best,Triad: Avg,Triad: Min,Triad: Max')
+
+    # Run test sequentially
+    data.extend([Test().run(cpu) for cpu in cpus])
+
+    if args.output:
+        # Write to file
+        with open(args.output, 'a') as outfile:
+            for line in data:
+                outfile.write("%s\n" % line)
+    else:
+        # Print data to stderr
+        for line in data:
+            print(line)

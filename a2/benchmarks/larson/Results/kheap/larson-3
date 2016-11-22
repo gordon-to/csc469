@@ -1,0 +1,66 @@
+
+
+Multi-threaded test driver 
+C version (malloc and free)
+runtime (sec): chunk size (min,max): threads (min, max):   chunks/thread:  no of rounds:   random seed:    
+thread stopping.
+thread stopping.
+thread stopping.
+area 0: 237288 allocs, 3 threads
+area 1: 209287 allocs, 3 threads
+area 2: 158650 allocs, 2 threads
+Throughput =    40337 operations per second.
+Memory used = 26079231 bytes, required 720000, ratio 36.221154
+Done sleeping...
+
+Multi-threaded test driver 
+C version (malloc and free)
+runtime (sec): chunk size (min,max): threads (min, max):   chunks/thread:  no of rounds:   random seed:    
+thread stopping.
+thread stopping.
+thread stopping.
+area 0: 170909 allocs, 2 threads
+area 1: 228094 allocs, 3 threads
+area 2: 206424 allocs, 3 threads
+Throughput =    40361 operations per second.
+Memory used = 26075135 bytes, required 720000, ratio 36.215465
+Done sleeping...
+
+Multi-threaded test driver 
+C version (malloc and free)
+runtime (sec): chunk size (min,max): threads (min, max):   chunks/thread:  no of rounds:   random seed:    
+thread stopping.
+thread stopping.
+thread stopping.
+area 0: 208239 allocs, 3 threads
+area 1: 250282 allocs, 3 threads
+area 2: 143951 allocs, 2 threads
+Throughput =    40164 operations per second.
+Memory used = 25976831 bytes, required 720000, ratio 36.078932
+Done sleeping...
+
+Multi-threaded test driver 
+C version (malloc and free)
+runtime (sec): chunk size (min,max): threads (min, max):   chunks/thread:  no of rounds:   random seed:    
+thread stopping.
+thread stopping.
+thread stopping.
+area 0: 200001 allocs, 3 threads
+area 1: 210335 allocs, 3 threads
+area 2: 195279 allocs, 2 threads
+Throughput =    40374 operations per second.
+Memory used = 26083327 bytes, required 720000, ratio 36.226843
+Done sleeping...
+
+Multi-threaded test driver 
+C version (malloc and free)
+runtime (sec): chunk size (min,max): threads (min, max):   chunks/thread:  no of rounds:   random seed:    
+thread stopping.
+thread stopping.
+thread stopping.
+area 0: 150058 allocs, 2 threads
+area 1: 292047 allocs, 3 threads
+area 2: 161521 allocs, 2 threads
+Throughput =    40219 operations per second.
+Memory used = 26013695 bytes, required 720000, ratio 36.130132
+Done sleeping...

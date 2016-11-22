@@ -1,0 +1,394 @@
+benchmark name = cache-scratch
+running /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/runtests.pl
+allocator name = kheap
+Thread 1
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-1 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-1 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-1 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-1 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-1 2>&1
+Thread 2
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-2 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-2 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-2 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-2 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-2 2>&1
+Thread 3
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-3 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-3 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-3 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-3 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-3 2>&1
+Thread 4
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-4 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-4 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-4 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-4 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-4 2>&1
+Thread 5
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-5 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-5 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-5 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-5 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-5 2>&1
+Thread 6
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-6 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-6 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-6 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-6 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-6 2>&1
+Thread 7
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-7 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-7 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-7 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-7 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-7 2>&1
+Thread 8
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-8 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-8 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-8 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-8 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/cache-scratch-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-scratch/Results/kheap/cache-scratch-8 2>&1
+name = kheap
+	scalability score 0.193
+	fragmentation score = 0.109
+
+benchmark name = cache-thrash
+running /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/runtests.pl
+allocator name = kheap
+Thread 1
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-1 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-1 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-1 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-1 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 1 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-1 2>&1
+Thread 2
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-2 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-2 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-2 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-2 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 2 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-2 2>&1
+Thread 3
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-3 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-3 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-3 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-3 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 3 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-3 2>&1
+Thread 4
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-4 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-4 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-4 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-4 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 4 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-4 2>&1
+Thread 5
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-5 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-5 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-5 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-5 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 5 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-5 2>&1
+Thread 6
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-6 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-6 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-6 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-6 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 6 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-6 2>&1
+Thread 7
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-7 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-7 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-7 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-7 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 7 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-7 2>&1
+Thread 8
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-8 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-8 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-8 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-8 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/cache-thrash-kheap 8 1000 8 100000 >> /u/bogdan/469-a2-testing/Perf/benchmarks/cache-thrash/Results/kheap/cache-thrash-8 2>&1
+name = kheap
+	scalability score 0.220
+	fragmentation score = 0.114
+
+benchmark name = threadtest
+running /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/runtests.pl
+allocator name = kheap
+Thread 1
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 1 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-1 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 1 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-1 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 1 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-1 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 1 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-1 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 1 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-1 2>&1
+Thread 2
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 2 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-2 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 2 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-2 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 2 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-2 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 2 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-2 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 2 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-2 2>&1
+Thread 3
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 3 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-3 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 3 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-3 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 3 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-3 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 3 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-3 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 3 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-3 2>&1
+Thread 4
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 4 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-4 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 4 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-4 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 4 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-4 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 4 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-4 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 4 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-4 2>&1
+Thread 5
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 5 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-5 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 5 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-5 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 5 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-5 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 5 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-5 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 5 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-5 2>&1
+Thread 6
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 6 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-6 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 6 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-6 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 6 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-6 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 6 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-6 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 6 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-6 2>&1
+Thread 7
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 7 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-7 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 7 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-7 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 7 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-7 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 7 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-7 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 7 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-7 2>&1
+Thread 8
+Iteration 1
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 8 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-8 2>&1
+Iteration 2
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 8 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-8 2>&1
+Iteration 3
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 8 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-8 2>&1
+Iteration 4
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 8 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-8 2>&1
+Iteration 5
+/u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/threadtest-kheap 8 1000 420 10 >> /u/bogdan/469-a2-testing/Perf/benchmarks/threadtest/Results/kheap/threadtest-8 2>&1
+i=2, speedup[i]=0.490173147762494, contrib=0.245086573881247, scal now 0.245086573881247
+i=3, speedup[i]=0.476282779695011, contrib=0.158760926565004, scal now 0.403847500446251
+i=4, speedup[i]=0.328210782058925, contrib=0.0820526955147313, scal now 0.485900195960982
+i=5, speedup[i]=0.238068691424527, contrib=0.0476137382849054, scal now 0.533513934245887
+i=6, speedup[i]=0.240589231060051, contrib=0.0400982051766752, scal now 0.573612139422563
+i=7, speedup[i]=0.265527187742104, contrib=0.0379324553917292, scal now 0.611544594814292
+name = kheap
+	scalability score 0.102
+	fragmentation score = 0.001
+
+benchmark name = larson
+running /u/bogdan/469-a2-testing/Perf/benchmarks/larson/runtests.pl
+allocator name = kheap
+Thread 1
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-1-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-1 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-1-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-1 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-1-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-1 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-1-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-1 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-1-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-1 2>&1
+Thread 2
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-2-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-2 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-2-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-2 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-2-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-2 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-2-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-2 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-2-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-2 2>&1
+Thread 3
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-3-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-3 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-3-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-3 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-3-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-3 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-3-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-3 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-3-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-3 2>&1
+Thread 4
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-4-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-4 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-4-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-4 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-4-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-4 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-4-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-4 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-4-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-4 2>&1
+Thread 5
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-5-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-5 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-5-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-5 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-5-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-5 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-5-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-5 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-5-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-5 2>&1
+Thread 6
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-6-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-6 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-6-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-6 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-6-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-6 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-6-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-6 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-6-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-6 2>&1
+Thread 7
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-7-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-7 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-7-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-7 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-7-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-7 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-7-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-7 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-7-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-7 2>&1
+Thread 8
+Iteration 1, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-8-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-8 2>&1
+Iteration 2, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-8-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-8 2>&1
+Iteration 3, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-8-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-8 2>&1
+Iteration 4, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-8-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-8 2>&1
+Iteration 5, maxtime 30
+/u/bogdan/469-a2-testing/Perf/benchmarks/larson/larson-kheap < /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Input/small-8-threads >> /u/bogdan/469-a2-testing/Perf/benchmarks/larson/Results/kheap/larson-8 2>&1
+i = 1, memory used: 27357183 avg, 27348991 min, 27365375 max
+i = 2, memory used: 25748274.2 avg, 25710591 min, 25780223 max
+i = 3, memory used: 26045643.8 avg, 25976831 min, 26083327 max
+i = 4, memory used: 26137394.2 avg, 26103807 min, 26169343 max
+i = 5, memory used: 26499480.6 avg, 26480639 min, 26533887 max
+i = 6, memory used: 27235941.4 avg, 27172863 min, 27303935 max
+i = 7, memory used: 28070706.2 avg, 28024831 min, 28143615 max
+i = 8, memory used: 28919397.4 avg, 28884991 min, 28975103 max
+name = kheap
+	scalability score 0.206
+	fragmentation score = 0.040
+
