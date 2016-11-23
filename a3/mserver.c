@@ -52,7 +52,7 @@ static bool parse_args(int argc, char **argv)
 			case 's': servers_port = atoi(optarg); break;
 			case 'l': strncpy(log_file_name, optarg, PATH_MAX); break;
 			case 'C': strncpy(cfg_file_name, optarg, PATH_MAX); break;
-			case 'i': server_timeout = atoi(optarg); break;
+			case 't': server_timeout = atoi(optarg); break;
 			default:
 				fprintf(stderr, "Invalid option: -%c\n", option);
 				return false;
@@ -328,9 +328,9 @@ static int spawn_server(int sid)
 			return -1;
 		case 0: {
 			char **cmd = get_spawn_cmd(sid);
-			execvp("./server", cmd);
+			execvp(cmd[0], cmd);
 			// If exec returns, some error happened
-			perror("./server");
+			perror(cmd[0]);
 			free_cmd(cmd);
 			exit(1);
 		}
@@ -374,8 +374,13 @@ static bool send_set_secondary(int sid)
 	request->type = SET_SECONDARY;
 	server_node *secondary_node = &(server_nodes[secondary_server_id(sid, num_servers)]);
 	request->port = secondary_node->sport;
-	int host_name_len = strlen(secondary_node->host_name) + 1;
-	strncpy(request->host_name, secondary_node->host_name, host_name_len);
+
+	// Extract the host name from "user@host"
+	char *at = strchr(secondary_node->host_name, '@');
+	char *host = (at == NULL) ? secondary_node->host_name : (at + 1);
+
+	int host_name_len = strlen(host) + 1;
+	strncpy(request->host_name, host, host_name_len);
 
 	// Send the request and receive the response
 	server_ctrl_response response = {0};
@@ -435,8 +440,13 @@ static void process_client_message(int fd)
 	locate_response *response = (locate_response*)buffer;
 	response->hdr.type = MSG_LOCATE_RESP;
 	response->port = server_nodes[server_id].cport;
-	int host_name_len = strlen(server_nodes[server_id].host_name) + 1;
-	strncpy(response->host_name, server_nodes[server_id].host_name, host_name_len);
+
+	// Extract the host name from "user@host"
+	char *at = strchr(server_nodes[server_id].host_name, '@');
+	char *host = (at == NULL) ? server_nodes[server_id].host_name : (at + 1);
+
+	int host_name_len = strlen(host) + 1;
+	strncpy(response->host_name, host, host_name_len);
 
 	// Reply to the client
 	send_msg(fd, response, sizeof(*response) + host_name_len);

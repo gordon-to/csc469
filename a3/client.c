@@ -149,7 +149,6 @@ static int get_key_server(const char key[KEY_SIZE])
 		return -1;
 	}
 
-
 	close(mserver_fd);// one request per connection
 	locate_response *response = (locate_response*)recv_buffer;
 	log_write("Key %s is stored on %s:%d\n", key_to_str(key), response->host_name, response->port);
@@ -214,6 +213,7 @@ static bool execute_operation(const operation *op, result *res)
 
 	bool result = send_operation(server_fd, key, op, res);
 	free(key);
+	close(server_fd);// one request per connection
 	return result;
 }
 
