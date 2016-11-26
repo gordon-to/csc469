@@ -556,7 +556,7 @@ static bool run_mserver_loop()
 		}
 
 		// Check for any messages from connected clients
-		for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
+		for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
 			if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
 				process_client_message(client_fd_table[i]);
 				// Close connection after processing (semantics are "one connection per request")
