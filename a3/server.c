@@ -113,6 +113,8 @@ static void *heartbeat(void *args)
 	request.type = HEARTBEAT;
 	request.server_id = server_id;
 	send_msg(mserver_fd_out, &request, sizeof(request));
+
+	return NULL;
 }
 
 // Initialize and start the server
@@ -299,7 +301,7 @@ static void process_client_message(int fd)
 			}
 
 			if (server_response.status != SUCCESS) {
-				fprintf(stderr, "Server %d failed PUT forwarding\n", sid);
+				fprintf(stderr, "Server %d failed PUT forwarding\n", server_id);
 				return;
 			}
 
