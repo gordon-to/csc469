@@ -227,25 +227,13 @@ static void process_client_message(int fd)
 	response->hdr.type = MSG_OPERATION_RESP;
 	uint16_t value_sz = 0;
 
-	hash_table *hash = NULL;
-
-	// For replication: check if the request is meant for a secondary server
-	int secondary_srv_id = secondary_server_id(request->key, num_servers);
-	bool is_secondary = secondary_srv_id == server_id;
-
-	if (is_secondary) {
-		hash = secondary_hash;
-	} else {
-		// Check that requested key is valid if this is supposed to be the primary server
-		int key_srv_id = key_server_id(request->key, num_servers);
-		if (key_srv_id != server_id) {
-			fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
-			response->status = KEY_NOT_FOUND;
-			send_msg(fd, response, sizeof(*response) + value_sz);
-			return;
-		}
-
-		hash = primary_hash;
+	// Check that requested key is valid if this is supposed to be the primary server
+	int key_srv_id = key_server_id(request->key, num_servers);
+	if (key_srv_id != server_id) {
+		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
+		response->status = KEY_NOT_FOUND;
+		send_msg(fd, response, sizeof(*response) + value_sz);
+		return;
 	}
 
 	// Process the request based on its type
@@ -259,7 +247,7 @@ static void process_client_message(int fd)
 			size_t size = 0;
 
 			// Get the value for requested key from the hash table
-			if (!hash_get(&hash, request->key, &data, &size)) {
+			if (!hash_get(&primary_hash, request->key, &data, &size)) {
 				log_write("Key %s not found\n", key_to_str(request->key));
 				response->status = KEY_NOT_FOUND;
 				break;
@@ -288,11 +276,11 @@ static void process_client_message(int fd)
 			void *old_value = NULL;
 			size_t old_value_sz = 0;
 
-			// Make sure to implement all necessary synchronization...
-			hash_lock(&hash, request->key);
+			// TODO: Make sure to implement all necessary synchronization...
+			// hash_lock(&primary_hash, request->key);
 
 			// Put the <key, value> pair into the hash table
-			if (!hash_put(&hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
+			if (!hash_put(&primary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
 				fprintf(stderr, "sid %d: Out of memory\n", server_id);
 				free(value_copy);
@@ -300,11 +288,19 @@ static void process_client_message(int fd)
 				break;
 			}
 
-			hash_unlock(&hash, request->key);
+			// hash_unlock(&primary_hash, request->key);
 
 			// Forward the PUT request to the secondary replica
-			if (!is_secondary) {
-				send_msg(secondary_fd, request, sizeof(*request));
+			send_msg(secondary_fd, request, sizeof(*request));
+
+			operation_response server_response = {0};
+			if (!recv_msg(secondary_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
+				return false;
+			}
+
+			if (server_response.status != SUCCESS) {
+				fprintf(stderr, "Server %d failed PUT forwarding\n", sid);
+				return false;
 			}
 
 			// Need to free the old value (if there was any)
@@ -338,6 +334,12 @@ static bool process_server_message(int fd)
 	}
 	operation_request *request = (operation_request*)req_buffer;
 
+	// Initialize the response
+	char resp_buffer[MAX_MSG_LEN] = {0};
+	operation_response *response = (operation_response*)resp_buffer;
+	response->hdr.type = MSG_OPERATION_RESP;
+	uint16_t value_sz = 0;
+
 	switch (request->type) {
 		// NOOP operation request is used to indicate the last message in an UPDATE sequence
 		case OP_NOOP: {
@@ -345,12 +347,49 @@ static bool process_server_message(int fd)
 			return false;
 		}
 
-		// TODO: process the message and send the response
-		case OP_GET: {
-			break;
-		}
-
 		case OP_PUT: {
+			int secondary_srv_id = secondary_server_id(request->key, num_servers);
+			if (secondary_srv_id != server_id) {
+				fprintf(stderr, "sid %d: Invalid secondary client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
+				response->status = KEY_NOT_FOUND;
+				send_msg(fd, response, sizeof(*response) + value_sz);
+				return;
+			}
+
+			// Need to copy the value to dynamically allocated memory
+			size_t value_size = request->hdr.length - sizeof(*request);
+			void *value_copy = malloc(value_size);
+			if (value_copy == NULL) {
+				perror("malloc");
+				fprintf(stderr, "sid %d: Out of memory\n", server_id);
+				response->status = OUT_OF_SPACE;
+				break;
+			}
+			memcpy(value_copy, request->value, value_size);
+
+			void *old_value = NULL;
+			size_t old_value_sz = 0;
+
+			// TODO: Make sure to implement all necessary synchronization...
+			// hash_lock(&secondary_hash, request->key);
+
+			// Put the <key, value> pair into the hash table
+			if (!hash_put(&secondary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
+			{
+				fprintf(stderr, "sid %d: Out of memory\n", server_id);
+				free(value_copy);
+				response->status = OUT_OF_SPACE;
+				break;
+			}
+
+			// hash_unlock(&secondary_hash, request->key);
+
+			// Need to free the old value (if there was any)
+			if (old_value != NULL) {
+				free(old_value);
+			}
+
+			response->status = SUCCESS;
 			break;
 		}
 
@@ -359,6 +398,7 @@ static bool process_server_message(int fd)
 			break;
 	}
 
+	send_msg(fd, response, sizeof(*response) + value_sz);
 	return true;
 }
 
