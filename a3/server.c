@@ -107,7 +107,7 @@ static void cleanup();
 static const int hash_size = 65536;
 
 // Sends periodic heartbeat messages to metadata server
-static void heartbeat()
+static void *heartbeat(void *args)
 {
 	mserver_ctrl_request request = {0};
 	request.type = HEARTBEAT;
@@ -295,12 +295,12 @@ static void process_client_message(int fd)
 
 			operation_response server_response = {0};
 			if (!recv_msg(secondary_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
-				return false;
+				return;
 			}
 
 			if (server_response.status != SUCCESS) {
 				fprintf(stderr, "Server %d failed PUT forwarding\n", sid);
-				return false;
+				return;
 			}
 
 			// Need to free the old value (if there was any)
@@ -348,14 +348,6 @@ static bool process_server_message(int fd)
 		}
 
 		case OP_PUT: {
-			int secondary_srv_id = secondary_server_id(request->key, num_servers);
-			if (secondary_srv_id != server_id) {
-				fprintf(stderr, "sid %d: Invalid secondary client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
-				response->status = KEY_NOT_FOUND;
-				send_msg(fd, response, sizeof(*response) + value_sz);
-				return;
-			}
-
 			// Need to copy the value to dynamically allocated memory
 			size_t value_size = request->hdr.length - sizeof(*request);
 			void *value_copy = malloc(value_size);
