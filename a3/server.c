@@ -157,8 +157,7 @@ static bool init_server()
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	pthread_t heartbeat_thread;
-	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL))
-	{
+	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL)) {
 		fprintf(stderr, "Server: error creating thread for heartbeat messages\n");
 		return 1;
 	}
@@ -228,17 +227,25 @@ static void process_client_message(int fd)
 	response->hdr.type = MSG_OPERATION_RESP;
 	uint16_t value_sz = 0;
 
-	// TODO: extend this function to support replication
-	// Make sure to implement all necessary synchronization. Feel free to use the lock/unlock functions from hash.h.
-	// ...
+	hash_table *hash = NULL;
 
-	// Check that requested key is valid
-	int key_srv_id = key_server_id(request->key, num_servers);
-	if (key_srv_id != server_id) {
-		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
-		response->status = KEY_NOT_FOUND;
-		send_msg(fd, response, sizeof(*response) + value_sz);
-		return;
+	// For replication: check if the request is meant for a secondary server
+	int secondary_srv_id = secondary_server_id(request->key, num_servers);
+	bool is_secondary = secondary_srv_id == server_id;
+
+	if (is_secondary) {
+		hash = secondary_hash;
+	} else {
+		// Check that requested key is valid if this is supposed to be the primary server
+		int key_srv_id = key_server_id(request->key, num_servers);
+		if (key_srv_id != server_id) {
+			fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
+			response->status = KEY_NOT_FOUND;
+			send_msg(fd, response, sizeof(*response) + value_sz);
+			return;
+		}
+
+		hash = primary_hash;
 	}
 
 	// Process the request based on its type
@@ -252,7 +259,7 @@ static void process_client_message(int fd)
 			size_t size = 0;
 
 			// Get the value for requested key from the hash table
-			if (!hash_get(&primary_hash, request->key, &data, &size)) {
+			if (!hash_get(&hash, request->key, &data, &size)) {
 				log_write("Key %s not found\n", key_to_str(request->key));
 				response->status = KEY_NOT_FOUND;
 				break;
@@ -281,8 +288,11 @@ static void process_client_message(int fd)
 			void *old_value = NULL;
 			size_t old_value_sz = 0;
 
+			// Make sure to implement all necessary synchronization...
+			hash_lock(&hash, request->key);
+
 			// Put the <key, value> pair into the hash table
-			if (!hash_put(&primary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
+			if (!hash_put(&hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
 				fprintf(stderr, "sid %d: Out of memory\n", server_id);
 				free(value_copy);
@@ -290,8 +300,12 @@ static void process_client_message(int fd)
 				break;
 			}
 
-			// TODO: forward the PUT request to the secondary replica
-			// ...
+			hash_unlock(&hash, request->key);
+
+			// Forward the PUT request to the secondary replica
+			if (!is_secondary) {
+				send_msg(secondary_fd, request, sizeof(*request));
+			}
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
