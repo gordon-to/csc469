@@ -90,6 +90,9 @@ static int server_fd_table[2] = {-1, -1};
 // Storage for primary key set
 hash_table primary_hash = {0};
 
+// Storage for secondary key set
+hash_table secondary_hash = {0};
+
 // Primary server (the one that stores the primary copy for this server's secondary key set)
 static int primary_sid = -1;
 static int primary_fd = -1;
@@ -148,6 +151,10 @@ static bool init_server()
 		goto cleanup;
 	}
 
+	if (!hash_init(&secondary_hash, hash_size)) {
+		goto cleanup;
+	}
+
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	pthread_t heartbeat_thread;
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL))
@@ -195,6 +202,9 @@ static void cleanup()
 
 	hash_iterate(&primary_hash, clean_iterator_f, NULL);
 	hash_cleanup(&primary_hash);
+
+	hash_iterate(&secondary_hash, clean_iterator_f, NULL);
+	hash_cleanup(&secondary_hash);
 
 	// TODO: release all other resources
 	// ...
