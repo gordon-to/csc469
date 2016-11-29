@@ -102,17 +102,33 @@ static int secondary_sid = -1;
 static int secondary_fd = -1;
 
 
+// Period heartbeat messages
+#define HEARTBEAT_INTERVAL 1  // seconds
+static pthread_t heartbeat_thread;
+
+
 static void cleanup();
 
 static const int hash_size = 65536;
 
+
 // Sends periodic heartbeat messages to metadata server
 static void *heartbeat(void *args)
 {
-	mserver_ctrl_request request = {0};
-	request.type = HEARTBEAT;
-	request.server_id = server_id;
-	send_msg(mserver_fd_out, &request, sizeof(request));
+	int rc = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	if (rc != 0) {
+		perror("pthread_setcanceltype");
+		return (void*)-1;
+	}
+
+	for (;;) {
+		mserver_ctrl_request request = {0};
+		request.type = HEARTBEAT;
+		request.server_id = server_id;
+		send_msg(mserver_fd_out, &request, sizeof(request));
+
+		sleep(HEARTBEAT_INTERVAL);
+	}
 
 	return NULL;
 }
@@ -158,7 +174,6 @@ static bool init_server()
 	}
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
-	pthread_t heartbeat_thread;
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL)) {
 		fprintf(stderr, "Server: error creating thread for heartbeat messages\n");
 		return 1;
@@ -209,6 +224,11 @@ static void cleanup()
 
 	// TODO: release all other resources
 	// ...
+
+	// Cancel heartbeat thread
+	if (heartbeat_thread) {
+		pthread_cancel(heartbeat_thread);
+	}
 }
 
 // Connection will be closed after calling this function regardless of result
