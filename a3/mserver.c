@@ -458,9 +458,39 @@ static bool process_server_message(int fd)
 {
 	log_write("%s Receiving a server message\n", current_time_str());
 
+	// Read and parse the message
+	char req_buffer[MAX_MSG_LEN] = {0};
+	if (!recv_msg(fd, req_buffer, MAX_MSG_LEN, MSG_MSERVER_CTRL_REQ)) {
+		return false;
+	}
+	mserver_ctrl_request *request = (mserver_ctrl_request*)req_buffer;
+
 	// TODO: read and process the message
-	// ...
-	(void)fd;
+	switch (request->type) {
+		case HEARTBEAT: {
+			break;
+		}
+
+		case UPDATED_PRIMARY: {
+			break;
+		}
+
+		case UPDATE_PRIMARY_FAILED: {
+			break;
+		}
+
+		case UPDATED_SECONDARY: {
+			break;
+		}
+
+		case UPDATE_SECONDARY_FAILED: {
+			break;
+		}
+
+		default:
+			fprintf(stderr, "Metadata server: Invalid server operation type\n");
+			return false;
+	}
 
 	return true;
 }

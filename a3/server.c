@@ -338,14 +338,26 @@ static bool process_server_message(int fd)
 	}
 	operation_request *request = (operation_request*)req_buffer;
 
-	// NOOP operation request is used to indicate the last message in an UPDATE sequence
-	if (request->type == OP_NOOP) {
-		log_write("Received the last server message, closing connection\n");
-		return false;
-	}
+	switch (request->type) {
+		// NOOP operation request is used to indicate the last message in an UPDATE sequence
+		case OP_NOOP: {
+			log_write("Received the last server message, closing connection\n");
+			return false;
+		}
 
-	// TODO: process the message and send the response
-	// ...
+		// TODO: process the message and send the response
+		case OP_GET: {
+			break;
+		}
+
+		case OP_PUT: {
+			break;
+		}
+
+		default:
+			fprintf(stderr, "sid %d: Invalid server operation type\n", server_id);
+			break;
+	}
 
 	return true;
 }
@@ -381,8 +393,17 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			*shutdown_requested = true;
 			return true;
 
-		// TODO: handle remaining message types
-		// ...
+		case UPDATE_PRIMARY:
+			// TODO
+			break;
+
+		case UPDATE_SECONDARY:
+			// TODO
+			break;
+
+		case SWITCH_PRIMARY:
+			// TODO
+			break;
 
 		default:// impossible
 			assert(false);
