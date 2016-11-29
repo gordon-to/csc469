@@ -103,6 +103,15 @@ static void cleanup();
 
 static const int hash_size = 65536;
 
+// Sends periodic heartbeat messages to metadata server
+static void heartbeat()
+{
+	mserver_ctrl_request request = {0};
+	request.type = HEARTBEAT;
+	request.server_id = server_id;
+	send_msg(mserver_fd_out, &request, sizeof(request));
+}
+
 // Initialize and start the server
 static bool init_server()
 {
@@ -139,8 +148,13 @@ static bool init_server()
 		goto cleanup;
 	}
 
-	// TODO: Create a separate thread that takes care of sending periodic heartbeat messages
-	// ...
+	// Create a separate thread that takes care of sending periodic heartbeat messages
+	pthread_t heartbeat_thread;
+	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL))
+	{
+		fprintf(stderr, "Server: error creating thread for heartbeat messages\n");
+		return 1;
+	}
 
 	log_write("Server initialized\n");
 	return true;
@@ -184,9 +198,7 @@ static void cleanup()
 
 	// TODO: release all other resources
 	// ...
-
 }
-
 
 // Connection will be closed after calling this function regardless of result
 static void process_client_message(int fd)
@@ -289,7 +301,6 @@ static void process_client_message(int fd)
 	send_msg(fd, response, sizeof(*response) + value_sz);
 }
 
-
 // Returns false if either the message was invalid or if this was the last message
 // (in both cases the connection will be closed)
 static bool process_server_message(int fd)
@@ -357,7 +368,6 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 	send_msg(fd, &response, sizeof(response));
 	return true;
 }
-
 
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_server_loop()
