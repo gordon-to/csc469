@@ -96,7 +96,8 @@ typedef struct _server_node {
 
 	// TODO: add fields for necessary additional server state information
 	// ...
-
+	// time_t last_heartbeat;
+	// bool is_down;?
 } server_node;
 
 // Total number of servers
@@ -433,7 +434,9 @@ static void process_client_message(int fd)
 	int server_id = key_server_id(request.key, num_servers);
 
 	// TODO: redirect client requests to the secondary replica while the primary is being recovered
-	// ...
+	// if (primary is down...) {
+	// 	server_id = secondary_server_id(server_id, num_servers);
+	// }
 
 	// Fill in the response with the key-value server location information
 	char buffer[MAX_MSG_LEN] = {0};
@@ -546,7 +549,10 @@ static bool run_mserver_loop()
 		// Need to go through the list of servers and figure out which servers have not sent a heartbeat message yet
 		// within the timeout interval. Keep information in the server_node structure regarding when was the last
 		// heartbeat received from a server and compare to current time. Initiate recovery if discovered a failure.
-		// ...
+		for (int i = 0; i < num_servers; i++) {
+			server_node *node = &(server_nodes[i]);
+			// ...
+		}
 
 		if (num_ready_fds <= 0 ) {
 			// Due to time out

@@ -449,10 +449,14 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 		case UPDATE_PRIMARY:
 			// TODO
+			// UPDATED_PRIMARY
+			// UPDATED_PRIMARY_FAILED
 			break;
 
 		case UPDATE_SECONDARY:
 			// TODO
+			// UPDATED_SECONDARY
+			// UPDATED_SECONDARY_FAILED
 			break;
 
 		case SWITCH_PRIMARY:
