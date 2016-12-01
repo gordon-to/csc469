@@ -113,11 +113,10 @@ static const int hash_size = 65536;
 
 
 // Sends periodic heartbeat messages to metadata server
-static void *heartbeat(void *args)
+static void *heartbeat_task(void *args)
 {
-	int rc = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-	if (rc != 0) {
-		perror("pthread_setcanceltype");
+	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
+		perror("heartbeat_task pthread_setcanceltype");
 		return (void*)-1;
 	}
 
@@ -131,6 +130,59 @@ static void *heartbeat(void *args)
 	}
 
 	return NULL;
+}
+
+// Sends a set to a replacement server for recovery
+static void *send_table_task(void *table_void_ptr)
+{
+	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
+		perror("send_table_task pthread_setcanceltype");
+		return (void*)-1;
+	}
+
+	hash_table *table = (hash_table *)table_void_ptr;
+
+	// TODO
+	// hash_iterate(&table, clean_iterator_f, NULL);
+
+	return NULL;
+}
+
+// Sends secondary set to a replacement key-value server as part of the recovery flow
+static int send_to_replacement(const char *host_name, uint16_t port, bool send_primary)
+{
+	mserver_ctrl_request request = {0};
+	request.server_id = server_id;
+
+	// TODO: should this just be primary/secondary_fd?
+	int some_fd;
+	if ((some_fd = connect_to_server(host_name, port)) < 0) {
+		goto send_replacement_failed;
+	}
+
+	hash_table *table = send_primary ? primary_hash : secondary_hash;
+
+	// Spawn a new thread to asynchronously send the set to the replacement server
+	pthread_t send_replacement_thread;
+	if (pthread_create(&send_replacement_thread, NULL, send_table_task, &table)) {
+		fprintf(stderr, "Error creating thread\n");
+		goto send_replacement_failed;
+	}
+
+	if (pthread_join(send_replacement_thread, NULL)) {
+		fprintf(stderr, "Error joining thread\n");
+		goto send_replacement_failed;
+	}
+
+	// 8/10. Send confirmation to M server when done sending the set
+	request.type = send_primary ? UPDATED_PRIMARY : UPDATED_SECONDARY;
+	send_msg(mserver_fd_out, &request, sizeof(request));
+	return 0;
+
+send_replacement_failed:
+	request.type = send_primary ? UPDATED_PRIMARY_FAILED : UPDATED_SECONDARY_FAILED;
+	send_msg(mserver_fd_out, &request, sizeof(request));
+	return -1;
 }
 
 // Initialize and start the server
@@ -174,7 +226,7 @@ static bool init_server()
 	}
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
-	if (pthread_create(&heartbeat_thread, NULL, heartbeat, NULL)) {
+	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
 		fprintf(stderr, "Server: error creating thread for heartbeat messages\n");
 		return 1;
 	}
@@ -456,33 +508,13 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			return true;
 
 		case UPDATE_PRIMARY:
-			// TODO
-			// 3. Spawns a new thread to asynchronously send its set X to Saa. Basically, this thread will send the set X
-			// one by one to Saa in the background, as new PUT requests keep coming in to Sb.
-
-			// Next, Sb sends a confirmation back to M, to indicate that it received the UPDATE-PRIMARY message.
-
-			// TODO: Somewhere else...?
-			// 8. Sb's asynchronous updater is done sending set X to Saa and contacts M with an UPDATED-PRIMARY confirmation message.
-			// Sb may continue to receive PUT requests and propagate them to Saa at this point until it hears back from M with further
-			// instructions.
-			// UPDATED_PRIMARY
-			// UPDATED_PRIMARY_FAILED
+			response.status = (send_to_replacement(request->host_name, request->port, true) < 0)
+			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 
 		case UPDATE_SECONDARY:
-			// TODO
-			// 6. Spawns a new thread to asynchronously send its set Y to Saa.
-
-			// Sc confirms the UPDATE-SECONDARY message by sending a confirmation message to M.
-
-			// TODO: Somewhere else...?
-			// 10. Sc's asynchronous updater is done sending a secondary copy of Y to Saa.
-			// Some synchronous PUT requests may also have been sent to Saa in the meantime (this should not affect
-			// consistency in any way, since the synchronized in-place updates guarantee that no ordering violation will occur).
-			// Sc sends an UPDATED-SECONDARY confirmation message.
-			// UPDATED_SECONDARY
-			// UPDATED_SECONDARY_FAILED
+			response.status = (send_to_replacement(request->host_name, request->port, false) < 0)
+			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 
 		case SWITCH_PRIMARY:
