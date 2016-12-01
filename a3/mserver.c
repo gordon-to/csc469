@@ -76,6 +76,12 @@ static int servers_fd = -1;
 #define MAX_CLIENT_SESSIONS 1000
 static int client_fd_table[MAX_CLIENT_SESSIONS];
 
+typedef enum {
+	KV_SERVER_ONLINE,
+	KV_SERVER_FAILED,
+	KV_SERVER_RECON,
+	KV_SERVER_RECOV
+} kv_server_state;
 
 // Structure describing a key-value server state
 typedef struct _server_node {
@@ -96,8 +102,10 @@ typedef struct _server_node {
 
 	// TODO: add fields for necessary additional server state information
 	// ...
-	// time_t last_heartbeat;
-	// bool is_down; ?
+	time_t last_heartbeat;
+	kv_server_state server_status; 
+	bool updated_primary_accepted;
+	bool updated_secondary_accepted;
 	// bool in_recovery_mode; ?
 	// some enum for status? (normal, failed, reconstruction, recovery)
 } server_node;
@@ -400,6 +408,39 @@ static bool send_set_secondary(int sid)
 	return true;
 }
 
+static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
+{
+	char buffer[MAX_MSG_LEN] = {0};
+	server_ctrl_request *request = (server_ctrl_request*)buffer;
+
+	// Fill in the request parameters
+	request->hdr.type = MSG_SERVER_CTRL_REQ;
+	request->type = ctrlreq_type;
+	server_node *secondary_node = &(server_nodes[sid2]);
+	request->port = secondary_node->sport;
+
+	// Extract the host name from "user@host"
+	char *at = strchr(secondary_node->host_name, '@');
+	char *host = (at == NULL) ? secondary_node->host_name : (at + 1);
+
+	int host_name_len = strlen(host) + 1;
+	strncpy(request->host_name, host, host_name_len);
+
+	// Send the request and receive the response
+	server_ctrl_response response = {0};
+	if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
+	    !recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
+	{
+		return false;
+	}
+
+	if (response.status != CTRLREQ_SUCCESS) {
+		fprintf(stderr, "Server %d failed UPDATE_PRIMARY\n", sid);
+		return false;
+	}
+	return true;
+}
+
 // Start all key-value servers
 static bool init_servers()
 {
@@ -436,9 +477,9 @@ static void process_client_message(int fd)
 	int server_id = key_server_id(request.key, num_servers);
 
 	// TODO: redirect client requests to the secondary replica while the primary is being recovered
-	// if (primary is down...) {
-	// 	server_id = secondary_server_id(server_id, num_servers);
-	// }
+	if (server_nodes[server_id].server_status == SERVER_FAILED) {
+		server_id = secondary_server_id(server_id, num_servers);
+	}
 
 	// Fill in the response with the key-value server location information
 	char buffer[MAX_MSG_LEN] = {0};
@@ -473,10 +514,16 @@ static bool process_server_message(int fd)
 	// TODO: read and process the message
 	switch (request->type) {
 		case HEARTBEAT: {
+			server_nodes[request->server_id].last_heartbeat = time(NULL);
 			break;
 		}
 
 		case UPDATED_PRIMARY: {
+			server_nodes[request->server_id].updated_primary_accepted = true;
+			if (server_nodes[request->server_id].updated_primary_accepted && 
+				server_nodes[request->server_id].updated_secondary_accepted = true) {
+					// TODO
+				}
 			break;
 		}
 
@@ -485,6 +532,10 @@ static bool process_server_message(int fd)
 		}
 
 		case UPDATED_SECONDARY: {
+			server_nodes[request->server_id].updated_secondary_accepted = true;
+			if (server_nodes[request->server_id].updated_primary_accepted && 
+				server_nodes[request->server_id].updated_secondary_accepted = true) {
+					// TODO
 			break;
 		}
 
@@ -553,7 +604,47 @@ static bool run_mserver_loop()
 		// heartbeat received from a server and compare to current time. Initiate recovery if discovered a failure.
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
-			// ...
+			if(difftime(time(NULL), node->last_heartbeat) > select_timeout_interval) {
+				// Mark timed out node as failed
+				node->server_status = KV_SERVER_FAILED;
+				
+				// Spawn new server
+				new_server_sid = num_servers;
+				spawn_server(num_servers++);
+				
+				// Update new server to be identical to the old server
+				// Replacement server must be started with all the same parameters as the failed one
+				// TODO: Does the sid need to change here? Is any of this nessecary?
+				// Make sure that you properly account for the newly opened connections
+				// (socket fds) to/from the replacement server, including the fd sets
+				// used in select() in the main mserver loop, and some other places.
+				server_nodes[new_server_sid].host_name = node->host_name;
+				server_nodes[new_server_sid].sport = node->sport;
+				server_nodes[new_server_sid].cport = node->cport;
+				server_nodes[new_server_sid].mport = node->mport;
+
+				server_nodes[new_server_sid].last_heartbeat = time(NULL);
+				server_nodes[new_server_sid].kv_server_state = KV_SERVER_RECON;
+				
+				server_nodes[new_server_sid].updated_primary_accepted = false;
+				server_nodes[new_server_sid].updated_secondary_accepted = false;
+				
+				int Sb = secondary_server_id(i, num_servers)
+				
+				// Send an UPDATE_PRIMARY to the secondary server of i, telling it to
+				// recover to reconstruct the new server new_server_sid
+				send_update(Sb, new_server_sid, UPDATE_PRIMARY);
+				
+				// If the call to send_update_primary resolves we recieved confirmation
+				// that Sb is in recovery mode
+				// Next mark Sb as the primary server for that Set
+				// TODO
+				
+				int Sc = primary_server_id(i, num_servers)
+				send_update(Sc, new_server_sid, UPDATE_SECONDARY);
+				
+				// This continues in the 
+			}
 		}
 
 		if (num_ready_fds <= 0 ) {
