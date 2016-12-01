@@ -301,6 +301,14 @@ static void process_client_message(int fd)
 			// TODO: Make sure to implement all necessary synchronization...
 			// hash_lock(&primary_hash, request->key);
 
+			// TODO
+			// 7. If in recovery mode:
+			// At this point, any PUT requests received by Sb are to be sent synchronously to Saa, independently of
+			// the updater thread. The same goes for Sc. Any PUT operation will update the value "in place" locally on
+			// Sb/Sc, before being sent to Saa.
+			// You will need to use synchronization to avoid a race condition between the thread sending data asynchronously
+			// and the synchronous PUT operations in flight.
+
 			// Put the <key, value> pair into the hash table
 			if (!hash_put(&primary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
@@ -449,18 +457,43 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 		case UPDATE_PRIMARY:
 			// TODO
+			// 3. Spawns a new thread to asynchronously send its set X to Saa. Basically, this thread will send the set X
+			// one by one to Saa in the background, as new PUT requests keep coming in to Sb.
+
+			// Next, Sb sends a confirmation back to M, to indicate that it received the UPDATE-PRIMARY message.
+
+			// TODO: Somewhere else...?
+			// 8. Sb's asynchronous updater is done sending set X to Saa and contacts M with an UPDATED-PRIMARY confirmation message.
+			// Sb may continue to receive PUT requests and propagate them to Saa at this point until it hears back from M with further
+			// instructions.
 			// UPDATED_PRIMARY
 			// UPDATED_PRIMARY_FAILED
 			break;
 
 		case UPDATE_SECONDARY:
 			// TODO
+			// 6. Spawns a new thread to asynchronously send its set Y to Saa.
+
+			// Sc confirms the UPDATE-SECONDARY message by sending a confirmation message to M.
+
+			// TODO: Somewhere else...?
+			// 10. Sc's asynchronous updater is done sending a secondary copy of Y to Saa.
+			// Some synchronous PUT requests may also have been sent to Saa in the meantime (this should not affect
+			// consistency in any way, since the synchronized in-place updates guarantee that no ordering violation will occur).
+			// Sc sends an UPDATED-SECONDARY confirmation message.
 			// UPDATED_SECONDARY
 			// UPDATED_SECONDARY_FAILED
 			break;
 
 		case SWITCH_PRIMARY:
 			// TODO
+			// 14. Sb receives SWITCH PRIMARY message and flushes all the remaining updates to Saa, and responds to the
+			// corresponding clients. Any clients that issue PUT requests at this point will be ignored (these clients will
+			// timeout and have to contact the metadata server again). Since the time window to flush any remaining requests
+			// to Saa should be small, the client retries should not pose a big problem with respect to availability.
+
+			// TODO
+			// 15. Sb sends a confirmation message to M, indicating that the switch primary message was handled.
 			break;
 
 		default:// impossible

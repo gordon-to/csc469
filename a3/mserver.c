@@ -97,7 +97,9 @@ typedef struct _server_node {
 	// TODO: add fields for necessary additional server state information
 	// ...
 	// time_t last_heartbeat;
-	// bool is_down;?
+	// bool is_down; ?
+	// bool in_recovery_mode; ?
+	// some enum for status? (normal, failed, reconstruction, recovery)
 } server_node;
 
 // Total number of servers
