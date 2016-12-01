@@ -76,13 +76,6 @@ static int servers_fd = -1;
 #define MAX_CLIENT_SESSIONS 1000
 static int client_fd_table[MAX_CLIENT_SESSIONS];
 
-typedef enum {
-	KV_SERVER_ONLINE,
-	KV_SERVER_FAILED,
-	KV_SERVER_RECON,
-	KV_SERVER_RECOV
-} kv_server_state;
-
 // Structure describing a key-value server state
 typedef struct _server_node {
 	// Server host name, possibly prefixed by "user@" (for starting servers remotely via ssh)
@@ -101,13 +94,10 @@ typedef struct _server_node {
 	pid_t pid;
 
 	// TODO: add fields for necessary additional server state information
-	// ...
 	time_t last_heartbeat;
-	kv_server_state server_status; 
+	kv_server_state server_status;
 	bool updated_primary_accepted;
 	bool updated_secondary_accepted;
-	// bool in_recovery_mode; ?
-	// some enum for status? (normal, failed, reconstruction, recovery)
 } server_node;
 
 // Total number of servers

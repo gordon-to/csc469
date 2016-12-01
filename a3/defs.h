@@ -224,5 +224,11 @@ typedef struct _server_ctrl_response {
 	server_ctrlreq_status status;
 } __attribute__((packed)) server_ctrl_response;
 
+typedef enum {
+	KV_SERVER_ONLINE,
+	KV_SERVER_FAILED,
+	KV_SERVER_RECON,
+	KV_SERVER_RECOV
+} kv_server_state;
 
 #endif// _DEFS_H_
