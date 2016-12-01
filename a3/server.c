@@ -106,6 +106,9 @@ static int secondary_fd = -1;
 #define HEARTBEAT_INTERVAL 1  // seconds
 static pthread_t heartbeat_thread;
 
+// Server state for recovery flow
+kv_server_state state;
+
 
 static void cleanup();
 
@@ -132,6 +135,21 @@ static void *heartbeat_task(void *args)
 	return NULL;
 }
 
+static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t value_sz, void *arg)
+{
+	// Package key/value into request packet
+	operation_request request = {0};
+	request.hdr.type = MSG_OPERATION_REQ;
+	request.type = OP_PUT;
+	memcpy(request.key, key, KEY_SIZE);
+	strncpy(request.value, value, value_sz);
+
+	// Send PUT request to new server
+	char recv_buffer[MAX_MSG_LEN] = {0};
+	int fd = state == KV_UPDATING_PRIMARY ? secondary_fd : primary_fd;
+	send_msg(fd, request, sizeof(*request) + value_sz);
+}
+
 // Sends a set to a replacement server for recovery
 static void *send_table_task(void *table_void_ptr)
 {
@@ -142,8 +160,7 @@ static void *send_table_task(void *table_void_ptr)
 
 	hash_table *table = (hash_table *)table_void_ptr;
 
-	// TODO
-	// hash_iterate(&table, clean_iterator_f, NULL);
+	hash_iterate(&table, send_table_iterator_f, NULL);
 
 	return NULL;
 }
@@ -154,33 +171,59 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 	mserver_ctrl_request request = {0};
 	request.server_id = server_id;
 
-	// TODO: should this just be primary/secondary_fd?
-	int some_fd;
-	if ((some_fd = connect_to_server(host_name, port)) < 0) {
+	int new_fd;
+	int orig_fd = -1;
+
+	if ((new_fd = connect_to_server(host_name, port)) < 0) {
 		goto send_replacement_failed;
+	}
+
+	if (send_primary) {
+		// Sending primary: primary is the recovering server's secondary set
+		orig_fd = secondary_fd;
+		secondary_fd = new_fd;
+	} else {
+		// Sending secondary: secondary is the recovering server's primary set
+		orig_fd = primary_fd;
+		primary_fd = new_fd;
 	}
 
 	hash_table *table = send_primary ? primary_hash : secondary_hash;
 
+	state = send_primary ? KV_UPDATING_SECONDARY : KV_UPDATING_PRIMARY;
+
 	// Spawn a new thread to asynchronously send the set to the replacement server
 	pthread_t send_replacement_thread;
 	if (pthread_create(&send_replacement_thread, NULL, send_table_task, &table)) {
-		fprintf(stderr, "Error creating thread\n");
+		fprintf(stderr, "send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
 
 	if (pthread_join(send_replacement_thread, NULL)) {
-		fprintf(stderr, "Error joining thread\n");
+		fprintf(stderr, "send_to_replacement: error joining thread\n");
 		goto send_replacement_failed;
 	}
 
 	// 8/10. Send confirmation to M server when done sending the set
-	request.type = send_primary ? UPDATED_PRIMARY : UPDATED_SECONDARY;
+	request.type = send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
 	send_msg(mserver_fd_out, &request, sizeof(request));
+
+	state = KV_SERVER_RECOV;
 	return 0;
 
 send_replacement_failed:
-	request.type = send_primary ? UPDATED_PRIMARY_FAILED : UPDATED_SECONDARY_FAILED;
+	// Rollback
+	if (orig_fd != -1) {
+		if (send_primary) {
+			secondary_fd = orig_fd;
+		} else {
+			primary_fd = orig_fd;
+		}
+	}
+
+	state = KV_SERVER_ONLINE;
+
+	request.type = send_primary ? UPDATED_SECONDARY_FAILED : UPDATED_PRIMARY_FAILED;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 	return -1;
 }
@@ -275,7 +318,6 @@ static void cleanup()
 	hash_cleanup(&secondary_hash);
 
 	// TODO: release all other resources
-	// ...
 
 	// Cancel heartbeat thread
 	if (heartbeat_thread) {
@@ -498,26 +540,30 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 	// Process the request based on its type
 	switch (request->type) {
-		case SET_SECONDARY:
+		case SET_SECONDARY: {
 			response.status = ((secondary_fd = connect_to_server(request->host_name, request->port)) < 0)
 			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
+		}
 
-		case SHUTDOWN:
+		case SHUTDOWN: {
 			*shutdown_requested = true;
 			return true;
+		}
 
-		case UPDATE_PRIMARY:
-			response.status = (send_to_replacement(request->host_name, request->port, true) < 0)
-			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+		case UPDATE_PRIMARY: {
+			bool rc = send_to_replacement(request->host_name, request->port, false) < 0;
+			response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
+		}
 
-		case UPDATE_SECONDARY:
-			response.status = (send_to_replacement(request->host_name, request->port, false) < 0)
-			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+		case UPDATE_SECONDARY: {
+			bool rc = send_to_replacement(request->host_name, request->port, true) < 0;
+			response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
+		}
 
-		case SWITCH_PRIMARY:
+		case SWITCH_PRIMARY: {
 			// TODO
 			// 14. Sb receives SWITCH PRIMARY message and flushes all the remaining updates to Saa, and responds to the
 			// corresponding clients. Any clients that issue PUT requests at this point will be ignored (these clients will
@@ -526,7 +572,11 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 			// TODO
 			// 15. Sb sends a confirmation message to M, indicating that the switch primary message was handled.
+			// response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+
+			state = KV_SERVER_ONLINE;
 			break;
+		}
 
 		default:// impossible
 			assert(false);
