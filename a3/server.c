@@ -413,7 +413,7 @@ static void process_client_message(int fd)
 
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
-			send_msg(secondary_fd, request, sizeof(*request));
+			send_msg(secondary_fd, request, request->hdr.length);
 
 			operation_response server_response = {0};
 			if (!recv_msg(secondary_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
