@@ -177,29 +177,31 @@ static void *send_table_task(void *send_primary_void_ptr)
 // Sends secondary set to a replacement key-value server as part of the recovery flow
 static int send_to_replacement(const char *host_name, uint16_t port, bool send_primary)
 {
-	// Close connection to dead server
-	if (send_primary) {
-		close_safe(&secondary_fd);
-	} else {
-		close_safe(&primary_fd);
-	}
+	pthread_t *replacement_thread = NULL;
 
 	// "Back up" secondary_fd for Sc
 	orig_secondary_fd = secondary_fd;
 
 	// Connect to the new recovery server
-	// Set it as the secondary_fd so PUTs are forwarded to it
-	if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
-		goto send_replacement_failed;
-	}
-
-	pthread_t *replacement_thread = NULL;
-
 	if (send_primary) {
+		close_safe(&secondary_fd);
+
+		// Sc: connect to new Saa as secondary
+		if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
+			goto send_replacement_failed;
+		}
+
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
 	} else {
+		close_safe(&primary_fd);
+
+		// Sb: connect to new Saa as temp secondary
+		if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
+			goto send_replacement_failed;
+		}
+
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
 		replacement_thread = &send_replacement_primary_thread;
@@ -362,8 +364,9 @@ static void process_client_message(int fd)
 
 	hash_table *table = &primary_hash;
 
-	// Targetting secondary set as a psuedo-primary set
-	if (state != KV_SERVER_ONLINE && secondary_srv_id == server_id) {
+	// Targetting secondary set as a pseudo-primary set
+	bool secondary_as_primary = (state == KV_UPDATING_PRIMARY && secondary_srv_id == server_id);
+	if (secondary_as_primary) {
 		table = &secondary_hash;
 	}
 
@@ -424,7 +427,7 @@ static void process_client_message(int fd)
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_fd;
-			if (state == KV_UPDATING_PRIMARY) {
+			if (secondary_as_primary) {
 				forward_fd = primary_fd;
 			}
 
@@ -510,12 +513,8 @@ static bool process_server_message(int fd)
 			}
 
 			// Normally, this is for putting it in the secondary replica (forwarded PUT)
-			hash_table *table = &secondary_hash;
-
 			// During recovery, we might need to update the new primary replica instead (Saa)
-			if (server_id == primary_srv_id) {
-				table = &primary_hash;
-			}
+			hash_table *table = (server_id == primary_srv_id) ? &primary_hash : &secondary_hash;
 
 			hash_lock(table, request->key);
 
