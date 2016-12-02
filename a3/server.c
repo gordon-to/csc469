@@ -152,14 +152,27 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 }
 
 // Sends a set to a replacement server for recovery
-static void *send_table_task(void *table_void_ptr)
+static void *send_table_task(void *send_primary_void_ptr)
 {
 	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
 		perror("send_table_task pthread_setcanceltype");
 		return (void*)-1;
 	}
 
-	hash_iterate((hash_table *)table_void_ptr, send_table_iterator_f, NULL);
+	bool *send_primary = (bool *)send_primary_void_ptr;
+
+	hash_table *table = *send_primary ? &primary_hash : &secondary_hash;
+
+	hash_iterate(table, send_table_iterator_f, NULL);
+
+	// 8/10. Send confirmation to M server when done sending the set
+	mserver_ctrl_request request = {0};
+	request.hdr.type = MSG_MSERVER_CTRL_REQ;
+	request.server_id = server_id;
+	request.type = *send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
+	send_msg(mserver_fd_out, &request, sizeof(request));
+
+	state = KV_SERVER_RECOV;
 
 	return NULL;
 }
@@ -167,9 +180,6 @@ static void *send_table_task(void *table_void_ptr)
 // Sends secondary set to a replacement key-value server as part of the recovery flow
 static int send_to_replacement(const char *host_name, uint16_t port, bool send_primary)
 {
-	mserver_ctrl_request request = {0};
-	request.server_id = server_id;
-
 	int orig_fd = secondary_fd;
 
 	close_safe(&orig_fd);
@@ -180,40 +190,24 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 		goto send_replacement_failed;
 	}
 
-	hash_table *table = NULL;
 	pthread_t *replacement_thread = NULL;
 
 	if (send_primary) {
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
-
-		table = &primary_hash;
 		replacement_thread = &send_replacement_secondary_thread;
 	} else {
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
-
-		table = &secondary_hash;
 		replacement_thread = &send_replacement_primary_thread;
 	}
 
 	// Spawn a new thread to asynchronously send the set to the replacement server
-	if (pthread_create(replacement_thread, NULL, send_table_task, &table)) {
+	if (pthread_create(replacement_thread, NULL, send_table_task, &send_primary)) {
 		fprintf(stderr, "send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
 
-	// When the thread is done sending...
-	if (pthread_join(*replacement_thread, NULL)) {
-		fprintf(stderr, "send_to_replacement: error joining thread\n");
-		goto send_replacement_failed;
-	}
-
-	// 8/10. Send confirmation to M server when done sending the set
-	request.type = send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
-	send_msg(mserver_fd_out, &request, sizeof(request));
-
-	state = KV_SERVER_RECOV;
 	return 0;
 
 send_replacement_failed:
@@ -224,6 +218,9 @@ send_replacement_failed:
 
 	state = KV_SERVER_ONLINE;
 
+	mserver_ctrl_request request = {0};
+	request.hdr.type = MSG_MSERVER_CTRL_REQ;
+	request.server_id = server_id;
 	request.type = send_primary ? UPDATE_SECONDARY_FAILED : UPDATE_PRIMARY_FAILED;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 	return -1;
