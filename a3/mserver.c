@@ -640,7 +640,7 @@ static bool run_mserver_loop()
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
 
-			if (difftime(time(NULL), node->last_heartbeat) > heartbeat_check_diff) {
+			if (node->last_heartbeat && difftime(time(NULL), node->last_heartbeat) > heartbeat_check_diff) {
 				log_write("Node %d heartbeat check failed\n", node->sid);
 
 				// Mark timed out node as failed
