@@ -103,7 +103,7 @@ static int secondary_fd = -1;
 
 
 // Period heartbeat messages
-static const int heartbeat_interval = 1;  // in seconds
+static const int heartbeat_interval = 5;  // in seconds
 static pthread_t heartbeat_thread;
 
 // For recovery flow

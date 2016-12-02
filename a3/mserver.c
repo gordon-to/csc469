@@ -587,6 +587,7 @@ static bool process_server_message(int fd)
 
 
 static const int select_timeout_interval = 1; // seconds
+static const int heartbeat_check_diff = 10; // seconds
 
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_mserver_loop()
@@ -639,7 +640,7 @@ static bool run_mserver_loop()
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
 
-			if (difftime(time(NULL), node->last_heartbeat) > select_timeout_interval) {
+			if (difftime(time(NULL), node->last_heartbeat) > heartbeat_check_diff) {
 				log_write("Node %d heartbeat check failed\n", node->sid);
 
 				// Mark timed out node as failed
