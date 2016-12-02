@@ -2,3 +2,5 @@
 *.o
 client
 mserver
+server
+*.log
