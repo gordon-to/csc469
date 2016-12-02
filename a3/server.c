@@ -127,6 +127,7 @@ static void *heartbeat_task(void *args)
 
 	for (;;) {
 		mserver_ctrl_request request = {0};
+		request.hdr.type = MSG_MSERVER_CTRL_REQ;
 		request.type = HEARTBEAT;
 		request.server_id = server_id;
 		send_msg(mserver_fd_out, &request, sizeof(request));
