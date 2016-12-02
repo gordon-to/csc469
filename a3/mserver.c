@@ -98,6 +98,8 @@ typedef struct _server_node {
 	kv_server_state server_status;
 	bool updated_primary_accepted;
 	bool updated_secondary_accepted;
+	
+	bool ignore_put;
 } server_node;
 
 // Total number of servers
@@ -467,8 +469,12 @@ static void process_client_message(int fd)
 	int server_id = key_server_id(request.key, num_servers);
 
 	// TODO: redirect client requests to the secondary replica while the primary is being recovered
-	if (server_nodes[server_id].server_status == SERVER_FAILED) {
+	if (server_nodes[server_id].server_status == KV_SERVER_FAILED || server_nodes[server_id].server_status == KV_SERVER_RECON) {
 		server_id = secondary_server_id(server_id, num_servers);
+	}
+	
+	if (server_nodes[server_id].ignore_put == True) {
+		return;
 	}
 
 	// Fill in the response with the key-value server location information
@@ -488,6 +494,28 @@ static void process_client_message(int fd)
 	send_msg(fd, response, sizeof(*response) + host_name_len);
 }
 
+static bool handle_switch_primary(int Saa, int Sb) {
+	/*
+	12. M halts any further client requests for the set X until the swap
+	(of Saa taking over as primary for X) is finalized. It can still service
+	client requests for any other keys.
+	*/
+	server_nodes[Saa].ignore_put = true;
+	server_nodes[Sb].ignore_put = true;
+	/*
+	13. M sends Sb a SWITCH PRIMARY message, to indicate that it should flush
+	any in-flight PUT requests and ignore any further PUT requests for set X.
+	*/
+	send_update(Sb, Saa, SWITCH_PRIMARY);
+	
+	/*
+	16. M receives an acknowledgment message and marks Saa as the new primary for
+	set X, then resumes responding to client requests for keys that fall into set X.
+	*/
+	
+	server_nodes[Saa].ignore_put = false;
+	server_nodes[Sb].ignore_put = false;
+} 
 
 // Returns false if the message was invalid (so the connection will be closed)
 static bool process_server_message(int fd)
@@ -509,27 +537,41 @@ static bool process_server_message(int fd)
 		}
 
 		case UPDATED_PRIMARY: {
-			server_nodes[request->server_id].updated_primary_accepted = true;
-			if (server_nodes[request->server_id].updated_primary_accepted && 
-				server_nodes[request->server_id].updated_secondary_accepted = true) {
-					// TODO
-				}
+			/*
+			9. M receives Sb's UPDATED-PRIMARY message and awaits on confirmation
+			 from Sc as well. If it has already arrived, then it can now skip to step 12.
+			*/
+			int Sb = request->server_id;
+			int Saa = primary_server_id(Sb, num_servers);
+			server_nodes[Saa].updated_primary_accepted = true;
+			if (server_nodes[Saa].updated_primary_accepted && 
+				server_nodes[Saa].updated_secondary_accepted = true)
+				handle_switch_primary(Saa, Sb);
 			break;
 		}
 
 		case UPDATE_PRIMARY_FAILED: {
+			// TODO
 			break;
 		}
 
 		case UPDATED_SECONDARY: {
-			server_nodes[request->server_id].updated_secondary_accepted = true;
-			if (server_nodes[request->server_id].updated_primary_accepted && 
-				server_nodes[request->server_id].updated_secondary_accepted = true) {
-					// TODO
+			/*
+			11. M receives Sc's UPDATED-SECONDARY confirmation message.
+			*/
+			int Sc = request->server_id;
+			int Saa = secondary_server_id(Sc, num_servers);
+			int Sb = secondary_server_id(Saa, num_servers);
+			
+			server_nodes[Saa].updated_secondary_accepted = true;
+			if (server_nodes[Saa].updated_primary_accepted && 
+				server_nodes[Saa].updated_secondary_accepted = true) 
+					handle_switch_primary(Saa, Sb);
 			break;
 		}
 
 		case UPDATE_SECONDARY_FAILED: {
+			// TODO
 			break;
 		}
 
@@ -597,43 +639,53 @@ static bool run_mserver_loop()
 			if(difftime(time(NULL), node->last_heartbeat) > select_timeout_interval) {
 				// Mark timed out node as failed
 				node->server_status = KV_SERVER_FAILED;
+				int Saa = i;
 				
-				// Spawn new server
-				new_server_sid = num_servers;
-				spawn_server(num_servers++);
+				char host_name_temp[HOST_NAME_MAX] = node->host_name;
+				// Servers/client/mserver port numbers
+				uint16_t sport_temp = node->sport;
+				uint16_t cport_temp = node->cport;
+				uint16_t mport_temp = node->mport;
+				/*
+				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
+				*/
+				spawn_server(Saa);
 				
-				// Update new server to be identical to the old server
-				// Replacement server must be started with all the same parameters as the failed one
-				// TODO: Does the sid need to change here? Is any of this nessecary?
+				
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
-				server_nodes[new_server_sid].host_name = node->host_name;
-				server_nodes[new_server_sid].sport = node->sport;
-				server_nodes[new_server_sid].cport = node->cport;
-				server_nodes[new_server_sid].mport = node->mport;
+				server_nodes[Saa].host_name = host_name_temp;
+				server_nodes[Saa].sport = sport_temp;
+				server_nodes[Saa].cport = cport_temp;
+				server_nodes[Saa].mport = mport_temp;
 
-				server_nodes[new_server_sid].last_heartbeat = time(NULL);
-				server_nodes[new_server_sid].kv_server_state = KV_SERVER_RECON;
+				server_nodes[Saa].last_heartbeat = time(NULL);
+				server_nodes[Saa].kv_server_state = KV_SERVER_RECON;
 				
-				server_nodes[new_server_sid].updated_primary_accepted = false;
-				server_nodes[new_server_sid].updated_secondary_accepted = false;
+				server_nodes[Saa].updated_primary_accepted = false;
+				server_nodes[Saa].updated_secondary_accepted = false;
 				
-				int Sb = secondary_server_id(i, num_servers)
+				server_nodes[Saa].ignore_put = false;
 				
-				// Send an UPDATE_PRIMARY to the secondary server of i, telling it to
-				// recover to reconstruct the new server new_server_sid
-				send_update(Sb, new_server_sid, UPDATE_PRIMARY);
+				int Sb = secondary_server_id(Saa, num_servers)
 				
-				// If the call to send_update_primary resolves we recieved confirmation
-				// that Sb is in recovery mode
-				// Next mark Sb as the primary server for that Set
-				// TODO
+				/*
+				2. M sends Sb a UPDATE-PRIMARY message containing information on Saa.
+				*/
+				send_update(Sb, Saa, UPDATE_PRIMARY);
+				/*
+				4. M marks Sb as the primary for set X.
+				This is done by sending a failed/reconstructed server PUT/GET to secondary
+				*/
+			
+				/*
+				5. M sends Sc a UPDATE-SECONDARY message containing information on Saa.
+				*/
+				int Sc = primary_server_id(Saa, num_servers)
+				send_update(Sc, Saa, UPDATE_SECONDARY);
 				
-				int Sc = primary_server_id(i, num_servers)
-				send_update(Sc, new_server_sid, UPDATE_SECONDARY);
-				
-				// This continues in the 
+				// This continues in the message handler
 			}
 		}
 
