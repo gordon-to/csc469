@@ -263,7 +263,6 @@ static bool init_server()
 	if (!hash_init(&primary_hash, hash_size)) {
 		goto cleanup;
 	}
-
 	if (!hash_init(&secondary_hash, hash_size)) {
 		goto cleanup;
 	}

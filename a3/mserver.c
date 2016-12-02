@@ -93,12 +93,11 @@ typedef struct _server_node {
 	// Server process PID (it is a child process of mserver)
 	pid_t pid;
 
-	// TODO: add fields for necessary additional server state information
+	// Fields for additional server state information
 	time_t last_heartbeat;
 	kv_server_state server_status;
 	bool updated_primary_accepted;
 	bool updated_secondary_accepted;
-
 	bool ignore_put;
 } server_node;
 
@@ -397,6 +396,7 @@ static bool send_set_secondary(int sid)
 		fprintf(stderr, "Server %d failed SET-SECONDARY\n", sid);
 		return false;
 	}
+
 	return true;
 }
 
@@ -502,6 +502,7 @@ static void handle_switch_primary(int Saa, int Sb) {
 	*/
 	server_nodes[Saa].ignore_put = true;
 	server_nodes[Sb].ignore_put = true;
+
 	/*
 	13. M sends Sb a SWITCH PRIMARY message, to indicate that it should flush
 	any in-flight PUT requests and ignore any further PUT requests for set X.
@@ -512,7 +513,6 @@ static void handle_switch_primary(int Saa, int Sb) {
 	16. M receives an acknowledgment message and marks Saa as the new primary for
 	set X, then resumes responding to client requests for keys that fall into set X.
 	*/
-
 	server_nodes[Saa].ignore_put = false;
 	server_nodes[Sb].ignore_put = false;
 }
@@ -529,7 +529,7 @@ static bool process_server_message(int fd)
 	}
 	mserver_ctrl_request *request = (mserver_ctrl_request*)req_buffer;
 
-	// TODO: read and process the message
+	// Read and process the message
 	switch (request->type) {
 		case HEARTBEAT: {
 			server_nodes[request->server_id].last_heartbeat = time(NULL);
@@ -544,9 +544,10 @@ static bool process_server_message(int fd)
 			int Sb = request->server_id;
 			int Saa = primary_server_id(Sb, num_servers);
 			server_nodes[Saa].updated_primary_accepted = true;
-			if (server_nodes[Saa].updated_primary_accepted &&
-				server_nodes[Saa].updated_secondary_accepted)
+			if (server_nodes[Saa].updated_primary_accepted && server_nodes[Saa].updated_secondary_accepted) {
 				handle_switch_primary(Saa, Sb);
+			}
+
 			break;
 		}
 
@@ -564,9 +565,10 @@ static bool process_server_message(int fd)
 			int Sb = secondary_server_id(Saa, num_servers);
 
 			server_nodes[Saa].updated_secondary_accepted = true;
-			if (server_nodes[Saa].updated_primary_accepted &&
-				server_nodes[Saa].updated_secondary_accepted)
-					handle_switch_primary(Saa, Sb);
+			if (server_nodes[Saa].updated_primary_accepted && server_nodes[Saa].updated_secondary_accepted) {
+				handle_switch_primary(Saa, Sb);
+			}
+
 			break;
 		}
 
@@ -604,7 +606,7 @@ static bool run_mserver_loop()
 	}
 
 	int maxfd = max(clients_fd, servers_fd);
-	maxfd = max(maxfd,  max_server_fd);
+	maxfd = max(maxfd, max_server_fd);
 
 	// Metadata server sits in an infinite loop waiting for incoming connections from clients
 	// and for incoming messages from already connected servers and clients
@@ -636,22 +638,26 @@ static bool run_mserver_loop()
 		// heartbeat received from a server and compare to current time. Initiate recovery if discovered a failure.
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
-			if(difftime(time(NULL), node->last_heartbeat) > select_timeout_interval) {
+
+			if (difftime(time(NULL), node->last_heartbeat) > select_timeout_interval) {
+				log_write("Node %d heartbeat check failed\n", node->sid);
+
 				// Mark timed out node as failed
 				node->server_status = KV_SERVER_FAILED;
 				int Saa = i;
 
 				char host_name_temp[HOST_NAME_MAX];
 				strcpy(host_name_temp, node->host_name);
+
 				// Servers/client/mserver port numbers
 				uint16_t sport_temp = node->sport;
 				uint16_t cport_temp = node->cport;
 				uint16_t mport_temp = node->mport;
+
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
 				*/
 				spawn_server(Saa);
-
 
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
@@ -675,6 +681,7 @@ static bool run_mserver_loop()
 				2. M sends Sb a UPDATE-PRIMARY message containing information on Saa.
 				*/
 				send_request(Sb, Saa, UPDATE_PRIMARY);
+
 				/*
 				4. M marks Sb as the primary for set X.
 				This is done by sending a failed/reconstructed server PUT/GET to secondary
