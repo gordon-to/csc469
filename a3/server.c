@@ -189,6 +189,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 		// Sc: connect to new Saa as secondary
 		if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
+			fprintf(stderr, "send_to_replacement: error connecting to new secondary_fd\n");
 			goto send_replacement_failed;
 		}
 
@@ -202,6 +203,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 		// Sb: connect to new Saa as temp secondary (i.e. primary)
 		if ((primary_fd = connect_to_server(host_name, port)) < 0) {
+			fprintf(stderr, "send_to_replacement: error connecting to new primary_fd\n");
 			goto send_replacement_failed;
 		}
 
@@ -440,16 +442,18 @@ static void process_client_message(int fd)
 				forward_fd = primary_fd;
 			}
 
-			send_msg(forward_fd, request, request->hdr.length);
+			if (forward_fd != -1) {
+				send_msg(forward_fd, request, request->hdr.length);
 
-			operation_response server_response = {0};
-			if (!recv_msg(forward_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
-				return;
-			}
+				operation_response server_response = {0};
+				if (!recv_msg(forward_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
+					return;
+				}
 
-			if (server_response.status != SUCCESS) {
-				fprintf(stderr, "Server %d failed PUT forwarding\n", server_id);
-				return;
+				if (server_response.status != SUCCESS) {
+					fprintf(stderr, "Server %d failed PUT forwarding\n", server_id);
+					return;
+				}
 			}
 
 			// Need to free the old value (if there was any)
@@ -602,6 +606,7 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			break;
 		}
 
+		// Only Sb should get this
 		case SWITCH_PRIMARY: {
 			// TODO: need to explicitely ignore PUT requests while switching primary?
 			// SERVER_FAILURE status

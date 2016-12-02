@@ -431,7 +431,7 @@ static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
 	}
 
 	if (response.status != CTRLREQ_SUCCESS) {
-		fprintf(stderr, "Server %d failed UPDATE_PRIMARY\n", sid);
+		fprintf(stderr, "Server %d failed %sY\n", sid, server_ctrlreq_type_str[ctrlreq_type]);
 		return false;
 	}
 	return true;
@@ -662,7 +662,10 @@ static bool run_mserver_loop()
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
 				*/
-				spawn_server(Saa);
+				if (spawn_server(Saa) < 0) {
+					fprintf(stderr, "Spawning reconstruction server %d failed\n", node->sid);
+					continue;
+				}
 
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
