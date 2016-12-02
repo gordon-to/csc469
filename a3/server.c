@@ -162,9 +162,7 @@ static void *send_table_task(void *send_primary_void_ptr)
 
 	bool *send_primary = (bool *)send_primary_void_ptr;
 
-	hash_table *table = *send_primary ? &primary_hash : &secondary_hash;
-
-	hash_iterate(table, send_table_iterator_f, NULL);
+	hash_iterate(*send_primary ? &primary_hash : &secondary_hash, send_table_iterator_f, NULL);
 
 	// 8/10. Send confirmation to M server when done sending the set
 	mserver_ctrl_request request = {0};
@@ -351,11 +349,22 @@ static void process_client_message(int fd)
 
 	// Check that requested key is valid if this is supposed to be the primary server
 	int key_srv_id = key_server_id(request->key, num_servers);
-	if (key_srv_id != server_id) {
+	int secondary_srv_id = secondary_server_id(key_srv_id, num_servers);
+
+	// When normal or updating secondary (Sc), we're targetting the primary set
+	// If this is Sb, then we can target either set
+	if ((state == KV_UPDATING_PRIMARY && secondary_srv_id != server_id) && (key_srv_id != server_id)) {
 		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
 		response->status = KEY_NOT_FOUND;
 		send_msg(fd, response, sizeof(*response) + value_sz);
 		return;
+	}
+
+	hash_table *table = &primary_hash;
+
+	// Targetting secondary set as a psuedo-primary set
+	if (state != KV_SERVER_ONLINE && secondary_srv_id == server_id) {
+		table = &secondary_hash;
 	}
 
 	// Process the request based on its type
@@ -369,7 +378,7 @@ static void process_client_message(int fd)
 			size_t size = 0;
 
 			// Get the value for requested key from the hash table
-			if (!hash_get(&primary_hash, request->key, &data, &size)) {
+			if (!hash_get(table, request->key, &data, &size)) {
 				log_write("Key %s not found\n", key_to_str(request->key));
 				response->status = KEY_NOT_FOUND;
 				break;
@@ -398,18 +407,19 @@ static void process_client_message(int fd)
 			void *old_value = NULL;
 			size_t old_value_sz = 0;
 
-			hash_lock(&primary_hash, request->key);
+			hash_lock(table, request->key);
 
 			// Put the <key, value> pair into the hash table
-			if (!hash_put(&primary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
+			if (!hash_put(table, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
+				hash_unlock(table, request->key);
 				fprintf(stderr, "sid %d: Out of memory\n", server_id);
 				free(value_copy);
 				response->status = OUT_OF_SPACE;
 				break;
 			}
 
-			hash_unlock(&primary_hash, request->key);
+			hash_unlock(table, request->key);
 
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
@@ -502,7 +512,7 @@ static bool process_server_message(int fd)
 			// Normally, this is for putting it in the secondary replica (forwarded PUT)
 			hash_table *table = &secondary_hash;
 
-			// During recovery, we might need to update the new primary replica instead
+			// During recovery, we might need to update the new primary replica instead (Saa)
 			if (server_id == primary_srv_id) {
 				table = &primary_hash;
 			}
@@ -512,6 +522,7 @@ static bool process_server_message(int fd)
 			// Put the <key, value> pair into the hash table
 			if (!hash_put(table, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
+				hash_unlock(table, request->key);
 				fprintf(stderr, "sid %d: Out of memory\n", server_id);
 				free(value_copy);
 				response->status = OUT_OF_SPACE;
