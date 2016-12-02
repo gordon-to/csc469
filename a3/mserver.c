@@ -663,6 +663,8 @@ static bool run_mserver_loop()
 				uint16_t cport_temp = node->cport;
 				uint16_t mport_temp = node->mport;
 
+				FD_CLR(node->socket_fd_in, &allset);
+
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
 				*/
@@ -670,6 +672,9 @@ static bool run_mserver_loop()
 					fprintf(stderr, "Spawning reconstruction server %d failed\n", node->sid);
 					continue;
 				}
+
+				FD_SET(node->socket_fd_in, &allset);
+				maxfd = max(maxfd, node->socket_fd_in);
 
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
