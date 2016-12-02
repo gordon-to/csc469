@@ -473,7 +473,7 @@ static void process_client_message(int fd)
 	int server_id = key_server_id(request.key, num_servers);
 
 	// Redirect client requests to the secondary replica while the primary is being recovered
-	if (server_nodes[server_id].server_status == KV_SERVER_FAILED || server_nodes[server_id].server_status == KV_SERVER_RECON) {
+	if (server_nodes[server_id].server_status != KV_SERVER_ONLINE) {
 		server_id = secondary_server_id(server_id, num_servers);
 	}
 
@@ -597,7 +597,7 @@ static bool process_server_message(int fd)
 
 
 static const int select_timeout_interval = 1; // seconds
-static const int heartbeat_check_diff = 7; // seconds
+static const int heartbeat_check_diff = 3; // seconds
 
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_mserver_loop()
