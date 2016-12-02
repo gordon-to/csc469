@@ -523,6 +523,8 @@ static void handle_switch_primary(int Saa, int Sb) {
 	*/
 	server_nodes[Saa].ignore_put = false;
 	server_nodes[Sb].ignore_put = false;
+
+	server_nodes[Saa].server_status = KV_SERVER_ONLINE;
 }
 
 // Returns false if the message was invalid (so the connection will be closed)
@@ -675,6 +677,8 @@ static bool run_mserver_loop()
 
 				FD_SET(node->socket_fd_in, &allset);
 				maxfd = max(maxfd, node->socket_fd_in);
+
+				rset = allset;
 
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
