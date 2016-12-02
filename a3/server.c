@@ -621,36 +621,12 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			}
 
 			// 15. Do the switch and send a confirmation message
-			switch (state) {
-				case KV_UPDATING_PRIMARY: {  // Sb
-					// Set primary_fd to Saa
-					primary_fd = secondary_fd;
-
-					// Set secondary_fd back to orignal (Sc)
-					secondary_fd = orig_secondary_fd;
-
-					response.status = CTRLREQ_SUCCESS;
-					state = KV_SERVER_ONLINE;
-					break;
-				}
-
-				case KV_UPDATING_SECONDARY: {  // Sc
-					// This never changed...
-					// primary_fd = Sb;
-
-					// Already done via send_replacement...
-					// secondary_fd = Saa;
-
-					response.status = CTRLREQ_SUCCESS;
-					state = KV_SERVER_ONLINE;
-					break;
-				}
-
-				default: {
-					fprintf(stderr, "Invalid state when trying to switch primary\n");
-					response.status = CTRLREQ_FAILURE;
-					break;
-				}
+			if (state == KV_UPDATING_PRIMARY || state == KV_UPDATING_SECONDARY) {
+				state = KV_SERVER_ONLINE;
+				response.status = CTRLREQ_SUCCESS;
+			} else {
+				fprintf(stderr, "Invalid state when trying to switch primary\n");
+				response.status = CTRLREQ_FAILURE;
 			}
 
 			break;
