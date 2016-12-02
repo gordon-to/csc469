@@ -473,7 +473,7 @@ static void process_client_message(int fd)
 		server_id = secondary_server_id(server_id, num_servers);
 	}
 	
-	if (server_nodes[server_id].ignore_put == True) {
+	if (server_nodes[server_id].ignore_put == true) {
 		return;
 	}
 
@@ -494,7 +494,7 @@ static void process_client_message(int fd)
 	send_msg(fd, response, sizeof(*response) + host_name_len);
 }
 
-static bool handle_switch_primary(int Saa, int Sb) {
+static void handle_switch_primary(int Saa, int Sb) {
 	/*
 	12. M halts any further client requests for the set X until the swap
 	(of Saa taking over as primary for X) is finalized. It can still service
@@ -506,7 +506,7 @@ static bool handle_switch_primary(int Saa, int Sb) {
 	13. M sends Sb a SWITCH PRIMARY message, to indicate that it should flush
 	any in-flight PUT requests and ignore any further PUT requests for set X.
 	*/
-	send_update(Sb, Saa, SWITCH_PRIMARY);
+	send_request(Sb, Saa, SWITCH_PRIMARY);
 	
 	/*
 	16. M receives an acknowledgment message and marks Saa as the new primary for
@@ -545,7 +545,7 @@ static bool process_server_message(int fd)
 			int Saa = primary_server_id(Sb, num_servers);
 			server_nodes[Saa].updated_primary_accepted = true;
 			if (server_nodes[Saa].updated_primary_accepted && 
-				server_nodes[Saa].updated_secondary_accepted = true)
+				server_nodes[Saa].updated_secondary_accepted)
 				handle_switch_primary(Saa, Sb);
 			break;
 		}
@@ -565,7 +565,7 @@ static bool process_server_message(int fd)
 			
 			server_nodes[Saa].updated_secondary_accepted = true;
 			if (server_nodes[Saa].updated_primary_accepted && 
-				server_nodes[Saa].updated_secondary_accepted = true) 
+				server_nodes[Saa].updated_secondary_accepted) 
 					handle_switch_primary(Saa, Sb);
 			break;
 		}
@@ -641,7 +641,8 @@ static bool run_mserver_loop()
 				node->server_status = KV_SERVER_FAILED;
 				int Saa = i;
 				
-				char host_name_temp[HOST_NAME_MAX] = node->host_name;
+				char host_name_temp[HOST_NAME_MAX];
+				strcpy(host_name_temp, node->host_name);
 				// Servers/client/mserver port numbers
 				uint16_t sport_temp = node->sport;
 				uint16_t cport_temp = node->cport;
@@ -655,25 +656,25 @@ static bool run_mserver_loop()
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
-				server_nodes[Saa].host_name = host_name_temp;
+				strcpy(server_nodes[Saa].host_name, host_name_temp);
 				server_nodes[Saa].sport = sport_temp;
 				server_nodes[Saa].cport = cport_temp;
 				server_nodes[Saa].mport = mport_temp;
 
 				server_nodes[Saa].last_heartbeat = time(NULL);
-				server_nodes[Saa].kv_server_state = KV_SERVER_RECON;
+				server_nodes[Saa].server_status = KV_SERVER_RECON;
 				
 				server_nodes[Saa].updated_primary_accepted = false;
 				server_nodes[Saa].updated_secondary_accepted = false;
 				
 				server_nodes[Saa].ignore_put = false;
 				
-				int Sb = secondary_server_id(Saa, num_servers)
+				int Sb = secondary_server_id(Saa, num_servers);
 				
 				/*
 				2. M sends Sb a UPDATE-PRIMARY message containing information on Saa.
 				*/
-				send_update(Sb, Saa, UPDATE_PRIMARY);
+				send_request(Sb, Saa, UPDATE_PRIMARY);
 				/*
 				4. M marks Sb as the primary for set X.
 				This is done by sending a failed/reconstructed server PUT/GET to secondary
@@ -682,8 +683,8 @@ static bool run_mserver_loop()
 				/*
 				5. M sends Sc a UPDATE-SECONDARY message containing information on Saa.
 				*/
-				int Sc = primary_server_id(Saa, num_servers)
-				send_update(Sc, Saa, UPDATE_SECONDARY);
+				int Sc = primary_server_id(Saa, num_servers);
+				send_request(Sc, Saa, UPDATE_SECONDARY);
 				
 				// This continues in the message handler
 			}
