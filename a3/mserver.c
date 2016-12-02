@@ -408,15 +408,19 @@ static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
 	// Fill in the request parameters
 	request->hdr.type = MSG_SERVER_CTRL_REQ;
 	request->type = ctrlreq_type;
-	server_node *secondary_node = &(server_nodes[sid2]);
-	request->port = secondary_node->sport;
 
-	// Extract the host name from "user@host"
-	char *at = strchr(secondary_node->host_name, '@');
-	char *host = (at == NULL) ? secondary_node->host_name : (at + 1);
+	int host_name_len = 0;
+	if (ctrlreq_type != SWITCH_PRIMARY) {
+		server_node *secondary_node = &(server_nodes[sid2]);
+		request->port = secondary_node->sport;
 
-	int host_name_len = strlen(host) + 1;
-	strncpy(request->host_name, host, host_name_len);
+		// Extract the host name from "user@host"
+		char *at = strchr(secondary_node->host_name, '@');
+		char *host = (at == NULL) ? secondary_node->host_name : (at + 1);
+
+		host_name_len = strlen(host) + 1;
+		strncpy(request->host_name, host, host_name_len);
+	}
 
 	// Send the request and receive the response
 	server_ctrl_response response = {0};
