@@ -513,6 +513,10 @@ static void handle_switch_primary(int Saa, int Sb) {
 	*/
 	send_request(Sb, Saa, SWITCH_PRIMARY);
 
+	if (!send_set_secondary(Saa)) {
+		return;
+	}
+
 	/*
 	16. M receives an acknowledgment message and marks Saa as the new primary for
 	set X, then resumes responding to client requests for keys that fall into set X.
