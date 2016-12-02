@@ -110,6 +110,7 @@ static pthread_t heartbeat_thread;
 static pthread_t send_replacement_primary_thread;
 static pthread_t send_replacement_secondary_thread;
 static kv_server_state state;
+static int orig_secondary_fd = -1;
 
 
 static void cleanup();
@@ -172,17 +173,21 @@ static void *send_table_task(void *send_primary_void_ptr)
 	request.type = *send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 
-	state = KV_SERVER_RECOV;
-
 	return NULL;
 }
 
 // Sends secondary set to a replacement key-value server as part of the recovery flow
 static int send_to_replacement(const char *host_name, uint16_t port, bool send_primary)
 {
-	int orig_fd = secondary_fd;
+	// Close connection to dead server
+	if (send_primary) {
+		close_safe(&secondary_fd);
+	} else {
+		close_safe(&primary_fd);
+	}
 
-	close_safe(&orig_fd);
+	// "Back up" secondary_fd for Sc
+	orig_secondary_fd = secondary_fd;
 
 	// Connect to the new recovery server
 	// Set it as the secondary_fd so PUTs are forwarded to it
@@ -212,12 +217,10 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 send_replacement_failed:
 	// Rollback
-	if (orig_fd != -1) {
-		secondary_fd = orig_fd;
-	}
-
+	secondary_fd = orig_secondary_fd;
 	state = KV_SERVER_ONLINE;
 
+	// Send FAILED message to M server
 	mserver_ctrl_request request = {0};
 	request.hdr.type = MSG_MSERVER_CTRL_REQ;
 	request.server_id = server_id;
@@ -410,10 +413,15 @@ static void process_client_message(int fd)
 
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
-			send_msg(secondary_fd, request, request->hdr.length);
+			int forward_fd = secondary_fd;
+			if (state == KV_UPDATING_PRIMARY) {
+				forward_fd = primary_fd;
+			}
+
+			send_msg(forward_fd, request, request->hdr.length);
 
 			operation_response server_response = {0};
-			if (!recv_msg(secondary_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
+			if (!recv_msg(forward_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
 				return;
 			}
 
@@ -564,21 +572,20 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 		}
 
 		case UPDATE_PRIMARY: {
-			bool rc = send_to_replacement(request->host_name, request->port, false) < 0;
-			response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			response.status = (send_to_replacement(request->host_name, request->port, false) < 0)
+			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 		}
 
 		case UPDATE_SECONDARY: {
-			bool rc = send_to_replacement(request->host_name, request->port, true) < 0;
-			response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			response.status = (send_to_replacement(request->host_name, request->port, true) < 0)
+			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 		}
 
 		case SWITCH_PRIMARY: {
-			state = KV_SWITCHING_PRIMARY;
-
 			// TODO: need to explicitely ignore PUT requests while switching primary?
+			// SERVER_FAILURE status
 
 			// 14. Flush all remaining updates to new server
 			fd_set rset;
@@ -588,23 +595,45 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
 				if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
 					process_client_message(client_fd_table[i]);
-
+					// Close connection after processing (semantics are "one connection per request")
 					FD_CLR(client_fd_table[i], &rset);
 					close_safe(&(client_fd_table[i]));
 				}
 			}
 
 			// 15. Do the switch and send a confirmation message
-			// host_name and port are for the new server
-			if (state == KV_UPDATING_PRIMARY) {
-				response.status = ((primary_fd = connect_to_server(request->host_name, request->port)) < 0)
-				                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
-			} else if (state == KV_UPDATING_SECONDARY) {
-				response.status = ((secondary_fd = connect_to_server(request->host_name, request->port)) < 0)
-				                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			switch (state) {
+				case KV_UPDATING_PRIMARY: {  // Sb
+					// Set primary_fd to Saa
+					primary_fd = secondary_fd;
+
+					// Set secondary_fd back to orignal (Sc)
+					secondary_fd = orig_secondary_fd;
+
+					response.status = CTRLREQ_SUCCESS;
+					state = KV_SERVER_ONLINE;
+					break;
+				}
+
+				case KV_UPDATING_SECONDARY: {  // Sc
+					// This never changed...
+					// primary_fd = Sb;
+
+					// Already done via send_replacement...
+					// secondary_fd = Saa;
+
+					response.status = CTRLREQ_SUCCESS;
+					state = KV_SERVER_ONLINE;
+					break;
+				}
+
+				default: {
+					fprintf(stderr, "Invalid state when trying to switch primary\n");
+					response.status = CTRLREQ_FAILURE;
+					break;
+				}
 			}
 
-			state = KV_SERVER_ONLINE;
 			break;
 		}
 
