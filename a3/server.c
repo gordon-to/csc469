@@ -147,9 +147,8 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	strncpy(request.value, value, value_sz);
 
 	// Send PUT request to new server
-	char recv_buffer[MAX_MSG_LEN] = {0};
 	int fd = state == KV_UPDATING_PRIMARY ? secondary_fd : primary_fd;
-	send_msg(fd, request, sizeof(*request) + value_sz);
+	send_msg(fd, &request, sizeof(request) + value_sz);
 }
 
 // Sends a set to a replacement server for recovery
@@ -162,7 +161,7 @@ static void *send_table_task(void *table_void_ptr)
 
 	hash_table *table = (hash_table *)table_void_ptr;
 
-	hash_iterate(&table, send_table_iterator_f, NULL);
+	hash_iterate(table, send_table_iterator_f, NULL);
 
 	return NULL;
 }
@@ -190,7 +189,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 		primary_fd = new_fd;
 	}
 
-	hash_table *table = send_primary ? primary_hash : secondary_hash;
+	hash_table *table = send_primary ? &primary_hash : &secondary_hash;
 
 	state = send_primary ? KV_UPDATING_SECONDARY : KV_UPDATING_PRIMARY;
 
@@ -201,7 +200,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 		goto send_replacement_failed;
 	}
 
-	if (pthread_join(replacement_thread, NULL)) {
+	if (pthread_join(*replacement_thread, NULL)) {
 		fprintf(stderr, "send_to_replacement: error joining thread\n");
 		goto send_replacement_failed;
 	}
@@ -227,7 +226,7 @@ send_replacement_failed:
 
 	state = KV_SERVER_ONLINE;
 
-	request.type = send_primary ? UPDATED_SECONDARY_FAILED : UPDATED_PRIMARY_FAILED;
+	request.type = send_primary ? UPDATE_SECONDARY_FAILED : UPDATE_PRIMARY_FAILED;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 	return -1;
 }
@@ -583,11 +582,15 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			// }
 
 			// 14. Flush all remaining updates to new server
+			fd_set rset;
+			FD_ZERO(&rset);
+			FD_SET(my_clients_fd, &rset);
+
 			for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
 				if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
 					process_client_message(client_fd_table[i]);
 
-					FD_CLR(client_fd_table[i], &allset);
+					FD_CLR(client_fd_table[i], &rset);
 					close_safe(&(client_fd_table[i]));
 				}
 			}
