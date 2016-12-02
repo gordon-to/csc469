@@ -481,10 +481,28 @@ static bool process_server_message(int fd)
 			void *old_value = NULL;
 			size_t old_value_sz = 0;
 
-			hash_lock(&secondary_hash, request->key);
+			int primary_srv_id = key_server_id(request->key, num_servers);
+			int secondary_srv_id = secondary_server_id(primary_srv_id, num_servers);
+
+			// Somehow this server isn't the primary nor secondary server for the given key
+			if (server_id != primary_srv_id && server_id != secondary_srv_id) {
+				fprintf(stderr, "sid %d: Received server message but this server does not handle the key\n", server_id);
+				response->status = SERVER_FAILURE;
+				break;
+			}
+
+			// Normally, this is for putting it in the secondary replica (forwarded PUT)
+			hash_table *table = &secondary_hash;
+
+			// During recovery, we might need to update the new primary replica instead
+			if (server_id == primary_srv_id) {
+				table = &primary_hash;
+			}
+
+			hash_lock(table, request->key);
 
 			// Put the <key, value> pair into the hash table
-			if (!hash_put(&secondary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
+			if (!hash_put(table, request->key, value_copy, value_size, &old_value, &old_value_sz))
 			{
 				fprintf(stderr, "sid %d: Out of memory\n", server_id);
 				free(value_copy);
@@ -492,7 +510,7 @@ static bool process_server_message(int fd)
 				break;
 			}
 
-			hash_unlock(&secondary_hash, request->key);
+			hash_unlock(table, request->key);
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
