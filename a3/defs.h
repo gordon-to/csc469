@@ -225,12 +225,16 @@ typedef struct _server_ctrl_response {
 } __attribute__((packed)) server_ctrl_response;
 
 typedef enum {
+	// Used in metadata server
 	KV_SERVER_ONLINE,
 	KV_SERVER_FAILED,
 	KV_SERVER_RECON,
 	KV_SERVER_RECOV,
+
+	// Used in key-value server
 	KV_UPDATING_PRIMARY,
-	KV_UPDATING_SECONDARY
+	KV_UPDATING_SECONDARY,
+	KV_SWITCHING_PRIMARY
 } kv_server_state;
 
 #endif// _DEFS_H_

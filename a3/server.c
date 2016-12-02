@@ -106,7 +106,9 @@ static int secondary_fd = -1;
 #define HEARTBEAT_INTERVAL 1  // seconds
 static pthread_t heartbeat_thread;
 
-// Server state for recovery flow
+// For recovery flow
+static pthread_t send_replacement_primary_thread;
+static pthread_t send_replacement_secondary_thread;
 kv_server_state state;
 
 
@@ -193,16 +195,18 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 	state = send_primary ? KV_UPDATING_SECONDARY : KV_UPDATING_PRIMARY;
 
 	// Spawn a new thread to asynchronously send the set to the replacement server
-	pthread_t send_replacement_thread;
-	if (pthread_create(&send_replacement_thread, NULL, send_table_task, &table)) {
+	pthread_t *replacement_thread = send_primary ? &send_replacement_secondary_thread : &send_replacement_primary_thread;
+	if (pthread_create(replacement_thread, NULL, send_table_task, &table)) {
 		fprintf(stderr, "send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
 
-	if (pthread_join(send_replacement_thread, NULL)) {
+	if (pthread_join(replacement_thread, NULL)) {
 		fprintf(stderr, "send_to_replacement: error joining thread\n");
 		goto send_replacement_failed;
 	}
+
+	close_safe(&new_fd);
 
 	// 8/10. Send confirmation to M server when done sending the set
 	request.type = send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
@@ -323,6 +327,14 @@ static void cleanup()
 	if (heartbeat_thread) {
 		pthread_cancel(heartbeat_thread);
 	}
+
+	if (send_replacement_primary_thread) {
+		pthread_cancel(send_replacement_primary_thread);
+	}
+
+	if (send_replacement_secondary_thread) {
+		pthread_cancel(send_replacement_secondary_thread);
+	}
 }
 
 // Connection will be closed after calling this function regardless of result
@@ -393,15 +405,13 @@ static void process_client_message(int fd)
 			size_t old_value_sz = 0;
 
 			// TODO: Make sure to implement all necessary synchronization...
-			// hash_lock(&primary_hash, request->key);
+			hash_lock(&primary_hash, request->key);
 
 			// TODO
 			// 7. If in recovery mode:
 			// At this point, any PUT requests received by Sb are to be sent synchronously to Saa, independently of
 			// the updater thread. The same goes for Sc. Any PUT operation will update the value "in place" locally on
 			// Sb/Sc, before being sent to Saa.
-			// You will need to use synchronization to avoid a race condition between the thread sending data asynchronously
-			// and the synchronous PUT operations in flight.
 
 			// Put the <key, value> pair into the hash table
 			if (!hash_put(&primary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
@@ -412,9 +422,10 @@ static void process_client_message(int fd)
 				break;
 			}
 
-			// hash_unlock(&primary_hash, request->key);
+			hash_unlock(&primary_hash, request->key);
 
 			// Forward the PUT request to the secondary replica
+			// TODO: only if normal state?
 			send_msg(secondary_fd, request, sizeof(*request));
 
 			operation_response server_response = {0};
@@ -486,8 +497,7 @@ static bool process_server_message(int fd)
 			void *old_value = NULL;
 			size_t old_value_sz = 0;
 
-			// TODO: Make sure to implement all necessary synchronization...
-			// hash_lock(&secondary_hash, request->key);
+			hash_lock(&secondary_hash, request->key);
 
 			// Put the <key, value> pair into the hash table
 			if (!hash_put(&secondary_hash, request->key, value_copy, value_size, &old_value, &old_value_sz))
@@ -498,7 +508,7 @@ static bool process_server_message(int fd)
 				break;
 			}
 
-			// hash_unlock(&secondary_hash, request->key);
+			hash_unlock(&secondary_hash, request->key);
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
@@ -564,15 +574,33 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 		}
 
 		case SWITCH_PRIMARY: {
-			// TODO
-			// 14. Sb receives SWITCH PRIMARY message and flushes all the remaining updates to Saa, and responds to the
-			// corresponding clients. Any clients that issue PUT requests at this point will be ignored (these clients will
-			// timeout and have to contact the metadata server again). Since the time window to flush any remaining requests
-			// to Saa should be small, the client retries should not pose a big problem with respect to availability.
+			state = KV_SWITCHING_PRIMARY;
 
 			// TODO
-			// 15. Sb sends a confirmation message to M, indicating that the switch primary message was handled.
-			// response.status = rc ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			// 14. Ignore PUT requests while switching primary
+			// if (state == KV_SWITCHING_PRIMARY) {
+			// 	return;
+			// }
+
+			// 14. Flush all remaining updates to new server
+			for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
+				if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
+					process_client_message(client_fd_table[i]);
+
+					FD_CLR(client_fd_table[i], &allset);
+					close_safe(&(client_fd_table[i]));
+				}
+			}
+
+			// 15. Do the switch and send a confirmation message
+			// host_name and port are for the new server
+			if (state == KV_UPDATING_PRIMARY) {
+				response.status = ((primary_fd = connect_to_server(request->host_name, request->port)) < 0)
+				                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			} else if (state == KV_UPDATING_SECONDARY) {
+				response.status = ((secondary_fd = connect_to_server(request->host_name, request->port)) < 0)
+				                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
+			}
 
 			state = KV_SERVER_ONLINE;
 			break;
