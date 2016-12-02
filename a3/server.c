@@ -174,6 +174,8 @@ static void *send_table_task(void *send_primary_void_ptr)
 	request.type = *send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 
+	state = KV_SERVER_ONLINE;
+
 	return NULL;
 }
 
@@ -189,7 +191,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 		// Sc: connect to new Saa as secondary
 		if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
-			fprintf(stderr, "send_to_replacement: error connecting to new secondary_fd\n");
+			log_write("send_to_replacement: error connecting to new secondary_fd\n");
 			goto send_replacement_failed;
 		}
 
@@ -203,7 +205,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 		// Sb: connect to new Saa as temp secondary (i.e. primary)
 		if ((primary_fd = connect_to_server(host_name, port)) < 0) {
-			fprintf(stderr, "send_to_replacement: error connecting to new primary_fd\n");
+			log_write("send_to_replacement: error connecting to new primary_fd\n");
 			goto send_replacement_failed;
 		}
 
@@ -216,7 +218,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 
 	// Spawn a new thread to asynchronously send the set to the replacement server
 	if (pthread_create(replacement_thread, NULL, send_table_task, &send_primary)) {
-		fprintf(stderr, "send_to_replacement: error creating thread\n");
+		log_write("send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
 
@@ -281,7 +283,7 @@ static bool init_server()
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
-		fprintf(stderr, "Server: error creating thread for heartbeat messages\n");
+		log_write("Server: error creating thread for heartbeat messages\n");
 		return 1;
 	}
 
@@ -367,7 +369,7 @@ static void process_client_message(int fd)
 	// When normal or updating secondary (Sc), we're targetting the primary set
 	// If this is Sb, then we can target either set
 	if ((state == KV_UPDATING_PRIMARY && secondary_srv_id != server_id) && (key_srv_id != server_id)) {
-		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
+		log_write("sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
 		response->status = KEY_NOT_FOUND;
 		send_msg(fd, response, sizeof(*response) + value_sz);
 		return;
@@ -451,7 +453,7 @@ static void process_client_message(int fd)
 				}
 
 				if (server_response.status != SUCCESS) {
-					fprintf(stderr, "Server %d failed PUT forwarding\n", server_id);
+					log_write("Server %d failed PUT forwarding\n", server_id);
 					return;
 				}
 			}
@@ -520,7 +522,7 @@ static bool process_server_message(int fd)
 
 			// Somehow this server isn't the primary nor secondary server for the given key
 			if (server_id != primary_srv_id && server_id != secondary_srv_id) {
-				fprintf(stderr, "sid %d: Received server message but this server does not handle the key\n", server_id);
+				log_write("sid %d: Received server message but this server does not handle the key\n", server_id);
 				response->status = SERVER_FAILURE;
 				break;
 			}
@@ -608,31 +610,25 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 		// Only Sb should get this
 		case SWITCH_PRIMARY: {
-			// TODO: need to explicitely ignore PUT requests while switching primary?
-			// SERVER_FAILURE status
+			// TODO: need to explicitely ignore PUT requests while switching primary and send SERVER_FAILURE status?
 
+			// TODO
 			// 14. Flush all remaining updates to new server
-			fd_set rset;
-			FD_ZERO(&rset);
-			FD_SET(my_clients_fd, &rset);
+			// fd_set rset;
+			// FD_ZERO(&rset);
+			// FD_SET(my_clients_fd, &rset);
 
-			for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
-				if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
-					process_client_message(client_fd_table[i]);
-					// Close connection after processing (semantics are "one connection per request")
-					FD_CLR(client_fd_table[i], &rset);
-					close_safe(&(client_fd_table[i]));
-				}
-			}
+			// for (int i = 0; i <= MAX_CLIENT_SESSIONS; i++) {
+			// 	if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
+			// 		process_client_message(client_fd_table[i]);
+			// 		// Close connection after processing (semantics are "one connection per request")
+			// 		FD_CLR(client_fd_table[i], &rset);
+			// 		close_safe(&(client_fd_table[i]));
+			// 	}
+			// }
 
 			// 15. Do the switch and send a confirmation message
-			if (state == KV_UPDATING_PRIMARY || state == KV_UPDATING_SECONDARY) {
-				state = KV_SERVER_ONLINE;
-				response.status = CTRLREQ_SUCCESS;
-			} else {
-				fprintf(stderr, "Invalid state when trying to switch primary\n");
-				response.status = CTRLREQ_FAILURE;
-			}
+			response.status = CTRLREQ_SUCCESS;
 
 			break;
 		}

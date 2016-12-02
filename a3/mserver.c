@@ -472,7 +472,7 @@ static void process_client_message(int fd)
 	// Determine which server is responsible for the requested key
 	int server_id = key_server_id(request.key, num_servers);
 
-	// TODO: redirect client requests to the secondary replica while the primary is being recovered
+	// Redirect client requests to the secondary replica while the primary is being recovered
 	if (server_nodes[server_id].server_status == KV_SERVER_FAILED || server_nodes[server_id].server_status == KV_SERVER_RECON) {
 		server_id = secondary_server_id(server_id, num_servers);
 	}
@@ -547,7 +547,7 @@ static bool process_server_message(int fd)
 		case UPDATED_PRIMARY: {
 			/*
 			9. M receives Sb's UPDATED-PRIMARY message and awaits on confirmation
-			 from Sc as well. If it has already arrived, then it can now skip to step 12.
+			from Sc as well. If it has already arrived, then it can now skip to step 12.
 			*/
 			int Sb = request->server_id;
 			int Saa = primary_server_id(Sb, num_servers);
@@ -641,7 +641,7 @@ static bool run_mserver_loop()
 			}
 		}
 
-		// TODO: implement failure detection and recovery
+		// Failure detection and recovery
 		// Need to go through the list of servers and figure out which servers have not sent a heartbeat message yet
 		// within the timeout interval. Keep information in the server_node structure regarding when was the last
 		// heartbeat received from a server and compare to current time. Initiate recovery if discovered a failure.
