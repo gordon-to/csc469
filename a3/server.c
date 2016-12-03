@@ -621,6 +621,8 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 			// 15. Do the switch and send a confirmation message
 			response.status = CTRLREQ_SUCCESS;
 
+			state = KV_SERVER_ONLINE;
+
 			break;
 		}
 
