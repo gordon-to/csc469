@@ -615,8 +615,13 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 		case SWITCH_PRIMARY: {
 			state = KV_SWITCHING_PRIMARY;
 
-			// TODO: is this even needed?
 			// 14. Flush all remaining updates to new server
+			for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
+				if ((client_fd_table[i] != -1)) {
+					process_client_message(client_fd_table[i]);
+					close_safe(&(client_fd_table[i]));
+				}
+			}
 
 			// 15. Do the switch and send a confirmation message
 			response.status = CTRLREQ_SUCCESS;
