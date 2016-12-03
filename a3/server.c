@@ -362,7 +362,13 @@ static void process_client_message(int fd)
 	char resp_buffer[MAX_MSG_LEN] = {0};
 	operation_response *response = (operation_response*)resp_buffer;
 	response->hdr.type = MSG_OPERATION_RESP;
-	uint16_t value_sz = 0;
+
+	// Explicitely ignore client requests while handling SWITCH_PRIMARY
+	if (state == KV_SWITCHING_PRIMARY) {
+		response->status = SERVER_FAILURE;
+		send_msg(fd, response, sizeof(*response));
+		return;
+	}
 
 	// Check that requested key is valid if this is supposed to be the primary server
 	int key_srv_id = key_server_id(request->key, num_servers);
@@ -373,7 +379,7 @@ static void process_client_message(int fd)
 	if ((state == KV_UPDATING_PRIMARY && secondary_srv_id != server_id) && (key_srv_id != server_id)) {
 		log_write("sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
 		response->status = KEY_NOT_FOUND;
-		send_msg(fd, response, sizeof(*response) + value_sz);
+		send_msg(fd, response, sizeof(*response));
 		return;
 	}
 
@@ -381,6 +387,8 @@ static void process_client_message(int fd)
 	bool secondary_as_primary = (state == KV_UPDATING_PRIMARY && secondary_srv_id == server_id);
 
 	hash_table *table = secondary_as_primary ? &secondary_hash : &primary_hash;
+
+	uint16_t value_sz = 0;
 
 	// Process the request based on its type
 	switch (request->type) {
@@ -408,12 +416,6 @@ static void process_client_message(int fd)
 		}
 
 		case OP_PUT: {
-			// Explicitely ignore PUT requests while handling SWITCH_PRIMARY
-			if (state == KV_SWITCHING_PRIMARY) {
-				response->status = SERVER_FAILURE;
-				break;
-			}
-
 			// Need to copy the value to dynamically allocated memory
 			size_t value_size = request->hdr.length - sizeof(*request);
 			void *value_copy = malloc(value_size);
