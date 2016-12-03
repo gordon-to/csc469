@@ -218,7 +218,7 @@ static bool execute_operation(const operation *op, result *res)
 }
 
 // Time (in seconds) between reconnection attempts
-const int retry_interval = 10;
+static const int retry_interval = 1;
 
 // If the key-value server times out or fails, retry the metadata server
 static bool execute_operation_retry(const operation *op, result *res, int attempts)
@@ -298,7 +298,7 @@ static void prompt(FILE *input)
 }
 
 // The number of attempts to execute the operation before giving up
-const int max_attempts = 10;
+static const int max_attempts = 10;
 
 // Read and execute a set of operations from given input stream; returns true if no failures occured
 static bool execute_operations(FILE *input)
