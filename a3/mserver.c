@@ -678,8 +678,6 @@ static bool run_mserver_loop()
 				FD_SET(node->socket_fd_in, &allset);
 				maxfd = max(maxfd, node->socket_fd_in);
 
-				rset = allset;
-
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
