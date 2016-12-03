@@ -363,13 +363,6 @@ static void process_client_message(int fd)
 	operation_response *response = (operation_response*)resp_buffer;
 	response->hdr.type = MSG_OPERATION_RESP;
 
-	// Explicitely ignore client requests while handling SWITCH_PRIMARY
-	if (state == KV_SWITCHING_PRIMARY) {
-		response->status = SERVER_FAILURE;
-		send_msg(fd, response, sizeof(*response));
-		return;
-	}
-
 	// Check that requested key is valid if this is supposed to be the primary server
 	int key_srv_id = key_server_id(request->key, num_servers);
 	int secondary_srv_id = secondary_server_id(key_srv_id, num_servers);
@@ -745,7 +738,17 @@ static bool run_server_loop()
 		// Check for any messages from connected clients
 		for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
 			if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
-				process_client_message(client_fd_table[i]);
+				// Explicitely ignore client requests while handling SWITCH_PRIMARY
+				if (state == KV_SWITCHING_PRIMARY) {
+					char resp_buffer[MAX_MSG_LEN] = {0};
+					operation_response *response = (operation_response*)resp_buffer;
+					response->hdr.type = MSG_OPERATION_RESP;
+					response->status = SERVER_FAILURE;
+					send_msg(client_fd_table[i], response, sizeof(*response));
+				} else {
+					process_client_message(client_fd_table[i]);
+				}
+
 				// Close connection after processing (semantics are "one connection per request")
 				FD_CLR(client_fd_table[i], &allset);
 				close_safe(&(client_fd_table[i]));
