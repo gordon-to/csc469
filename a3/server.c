@@ -103,7 +103,7 @@ static int secondary_fd = -1;
 
 
 // Period heartbeat messages
-static const int heartbeat_interval = 2;  // in seconds
+static const int heartbeat_interval = 1;  // in seconds
 static pthread_t heartbeat_thread;
 
 // For recovery flow
@@ -280,6 +280,8 @@ static bool init_server()
 	if (!hash_init(&secondary_hash, hash_size)) {
 		goto cleanup;
 	}
+
+	state = KV_SERVER_ONLINE;
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
