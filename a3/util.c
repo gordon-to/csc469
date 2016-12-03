@@ -12,6 +12,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -222,7 +223,7 @@ static bool ntoh_operation_request(operation_request *msg)
 		return msg->hdr.length == sizeof(operation_request);
 	} else {
 		return msg->hdr.length > sizeof(operation_request);
-	}	
+	}
 }
 
 static void hton_operation_response(operation_response *msg)
@@ -792,4 +793,10 @@ int primary_server_id(int server_id, int num_servers)
 	assert((server_id >= 0) && (server_id < num_servers));
 
 	return (server_id + num_servers - 1) % num_servers;
+}
+
+// From http://stackoverflow.com/a/12340725
+int fd_is_valid(int fd)
+{
+	return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
 }

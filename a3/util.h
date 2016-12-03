@@ -118,5 +118,7 @@ int secondary_server_id(int server_id, int num_servers);
 // Get primary server id for given secondary server id
 int primary_server_id(int server_id, int num_servers);
 
+// Check if a file descriptor is still valid
+int fd_is_valid(int fd);
 
 #endif// _UTIL_H_
