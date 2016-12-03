@@ -298,7 +298,7 @@ static void prompt(FILE *input)
 }
 
 // The number of attempts to execute the operation before giving up
-const int max_attempts = 1;
+const int max_attempts = 10;
 
 // Read and execute a set of operations from given input stream; returns true if no failures occured
 static bool execute_operations(FILE *input)
