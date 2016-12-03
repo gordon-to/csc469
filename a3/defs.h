@@ -233,7 +233,8 @@ typedef enum {
 
 	// Used in key-value server
 	KV_UPDATING_PRIMARY,
-	KV_UPDATING_SECONDARY
+	KV_UPDATING_SECONDARY,
+	KV_SWITCHING_PRIMARY
 } kv_server_state;
 
 #endif// _DEFS_H_

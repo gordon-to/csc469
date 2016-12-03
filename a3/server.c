@@ -377,13 +377,10 @@ static void process_client_message(int fd)
 		return;
 	}
 
-	hash_table *table = &primary_hash;
-
 	// Targetting secondary set as a pseudo-primary set
 	bool secondary_as_primary = (state == KV_UPDATING_PRIMARY && secondary_srv_id == server_id);
-	if (secondary_as_primary) {
-		table = &secondary_hash;
-	}
+
+	hash_table *table = secondary_as_primary ? &secondary_hash : &primary_hash;
 
 	// Process the request based on its type
 	switch (request->type) {
@@ -411,6 +408,12 @@ static void process_client_message(int fd)
 		}
 
 		case OP_PUT: {
+			// Explicitely ignore PUT requests while handling SWITCH_PRIMARY
+			if (state == KV_SWITCHING_PRIMARY) {
+				response->status = SERVER_FAILURE;
+				break;
+			}
+
 			// Need to copy the value to dynamically allocated memory
 			size_t value_size = request->hdr.length - sizeof(*request);
 			void *value_copy = malloc(value_size);
@@ -441,11 +444,7 @@ static void process_client_message(int fd)
 
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
-			int forward_fd = secondary_fd;
-			if (secondary_as_primary) {
-				forward_fd = primary_fd;
-			}
-
+			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
 			if (forward_fd != -1) {
 				send_msg(forward_fd, request, request->hdr.length);
 
@@ -612,7 +611,7 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 		// Only Sb should get this
 		case SWITCH_PRIMARY: {
-			// TODO: need to explicitely ignore PUT requests while switching primary and send SERVER_FAILURE status?
+			state = KV_SWITCHING_PRIMARY;
 
 			// TODO
 			// 14. Flush all remaining updates to new server
