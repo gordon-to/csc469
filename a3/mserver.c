@@ -226,7 +226,6 @@ static void cleanup()
 				server_ctrl_request request = {0};
 				request.hdr.type = MSG_SERVER_CTRL_REQ;
 				request.type = SHUTDOWN;
-				fprintf(stderr, "send in cleanup\n");
 				send_msg(node->socket_fd_out, &request, sizeof(request));
 			}
 
@@ -387,7 +386,6 @@ static bool send_set_secondary(int sid)
 
 	// Send the request and receive the response
 	server_ctrl_response response = {0};
-	fprintf(stderr, "send/revc in send_set_secondary\n");
 	if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
 	    !recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
 	{
@@ -426,7 +424,6 @@ static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
 
 	// Send the request and receive the response
 	server_ctrl_response response = {0};
-	fprintf(stderr, "send/revc in send_request\n");
 	if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
 	    !recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
 	{
@@ -468,7 +465,6 @@ static void process_client_message(int fd)
 
 	// Read and parse the message
 	locate_request request = {0};
-	fprintf(stderr, "recv in process_client_message\n");
 	if (!recv_msg(fd, &request, sizeof(request), MSG_LOCATE_REQ)) {
 		return;
 	}
@@ -499,7 +495,6 @@ static void process_client_message(int fd)
 	strncpy(response->host_name, host, host_name_len);
 
 	// Reply to the client
-	fprintf(stderr, "send in process_client_message\n");
 	send_msg(fd, response, sizeof(*response) + host_name_len);
 }
 
@@ -539,7 +534,6 @@ static bool process_server_message(int fd)
 
 	// Read and parse the message
 	char req_buffer[MAX_MSG_LEN] = {0};
-	fprintf(stderr, "revc in process_server_message\n");
 	if (!recv_msg(fd, req_buffer, MAX_MSG_LEN, MSG_MSERVER_CTRL_REQ)) {
 		return false;
 	}
