@@ -195,8 +195,6 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 			goto send_replacement_failed;
 		}
 
-		close_safe(&orig_fd);
-
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
@@ -209,8 +207,6 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 			goto send_replacement_failed;
 		}
 
-		close_safe(&orig_fd);
-
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
 		replacement_thread = &send_replacement_primary_thread;
@@ -222,6 +218,7 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 		goto send_replacement_failed;
 	}
 
+	close_safe(&orig_fd);
 	return 0;
 
 send_replacement_failed:
