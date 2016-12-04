@@ -147,7 +147,7 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	request.hdr.type = MSG_OPERATION_REQ;
 	request.type = OP_PUT;
 	memcpy(request.key, key, KEY_SIZE);
-	memcpy(request.value, value, value_sz);
+	strncpy(request.value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
 	int fd = *send_primary ? secondary_fd : primary_fd;
@@ -433,8 +433,6 @@ static void process_client_message(int fd)
 				break;
 			}
 
-			hash_unlock(table, request->key);
-
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
@@ -443,14 +441,18 @@ static void process_client_message(int fd)
 
 				operation_response server_resp = {0};
 				if (!recv_msg(forward_fd, &server_resp, sizeof(server_resp), MSG_OPERATION_RESP)) {
+					hash_unlock(table, request->key);
 					return;
 				}
 
 				if (server_resp.status != SUCCESS) {
 					log_write("Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[server_resp.status]);
+					hash_unlock(table, request->key);
 					return;
 				}
 			}
+
+			hash_unlock(table, request->key);
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
