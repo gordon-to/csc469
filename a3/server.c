@@ -285,7 +285,7 @@ static bool init_server()
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
-		log_write("Server: error creating thread for heartbeat messages\n");
+		log_write("init_server: error creating thread for heartbeat messages\n");
 		return 1;
 	}
 
@@ -440,16 +440,16 @@ static void process_client_message(int fd)
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
-			if (forward_fd != -1) {
+			if (fd_is_valid(forward_fd)) {
 				send_msg(forward_fd, request, request->hdr.length);
 
-				operation_response server_response = {0};
-				if (!recv_msg(forward_fd, &server_response, sizeof(server_response), MSG_OPERATION_RESP)) {
+				operation_response server_resp = {0};
+				if (!recv_msg(forward_fd, &server_resp, sizeof(server_resp), MSG_OPERATION_RESP)) {
 					return;
 				}
 
-				if (server_response.status != SUCCESS) {
-					log_write("Server %d failed PUT forwarding\n", server_id);
+				if (server_resp.status != SUCCESS) {
+					log_write("Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[server_resp.status]);
 					return;
 				}
 			}
@@ -610,7 +610,7 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 			// 14. Flush all remaining updates to new server
 			for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
-				if ((client_fd_table[i] != -1)) {
+				if ((client_fd_table[i] != -1) && fd_is_valid(client_fd_table[i])) {
 					process_client_message(client_fd_table[i]);
 					close_safe(&(client_fd_table[i]));
 				}
