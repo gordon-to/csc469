@@ -423,18 +423,23 @@ static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
 	}
 
 	// Send the request and receive the response
-	server_ctrl_response response = {0};
-	if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
-	    !recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
-	{
-		return false;
+	if (fd_is_valid(server_nodes[sid].socket_fd_out)) {
+		server_ctrl_response response = {0};
+		if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
+			!recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
+		{
+			return false;
+		}
+
+		if (response.status != CTRLREQ_SUCCESS) {
+			fprintf(stderr, "Server %d failed %sY\n", sid, server_ctrlreq_type_str[ctrlreq_type]);
+			return false;
+		}
+
+		return true;
 	}
 
-	if (response.status != CTRLREQ_SUCCESS) {
-		fprintf(stderr, "Server %d failed %sY\n", sid, server_ctrlreq_type_str[ctrlreq_type]);
-		return false;
-	}
-	return true;
+	return false;
 }
 
 // Start all key-value servers
