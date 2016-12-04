@@ -147,7 +147,7 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	request.hdr.type = MSG_OPERATION_REQ;
 	request.type = OP_PUT;
 	memcpy(request.key, key, KEY_SIZE);
-	strncpy(request.value, value, value_sz);
+	memcpy(request.value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
 	int fd = *send_primary ? secondary_fd : primary_fd;
@@ -195,8 +195,6 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 			goto send_replacement_failed;
 		}
 
-		close_safe(&orig_fd);
-
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
@@ -209,8 +207,6 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 			goto send_replacement_failed;
 		}
 
-		close_safe(&orig_fd);
-
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
 		replacement_thread = &send_replacement_primary_thread;
@@ -221,6 +217,8 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 		log_write("send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
+
+	close_safe(&orig_fd);
 
 	return 0;
 
