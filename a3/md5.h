@@ -3,14 +3,14 @@
 /**
  * Implementation of the md5 algorithm described in RFC1321
  * Copyright (C) 2005 Quentin Carbonneaux <crazyjoke@free.fr>
- * 
+ *
  * This file is part of md5sum.
  *
  * md5sum is a free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Softawre Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * md5sum is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
@@ -69,4 +69,4 @@ void md5_final (unsigned char *digest, struct md5_ctx *context);
 /* main function to generate the MD5 */
 unsigned char* md5sum(const unsigned char *chaine, size_t len);
 
-#endif /* MD5_H */ 
+#endif /* MD5_H */

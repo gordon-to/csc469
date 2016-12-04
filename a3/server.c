@@ -107,9 +107,9 @@ static const int heartbeat_interval = 1;  // in seconds
 static pthread_t heartbeat_thread;
 
 // For recovery flow
+static kv_server_state state;
 static pthread_t send_replacement_primary_thread;
 static pthread_t send_replacement_secondary_thread;
-static kv_server_state state;
 
 
 static void cleanup();
@@ -239,6 +239,7 @@ send_replacement_failed:
 	request.server_id = server_id;
 	request.type = send_primary ? UPDATE_SECONDARY_FAILED : UPDATE_PRIMARY_FAILED;
 	send_msg(mserver_fd_out, &request, sizeof(request));
+
 	return -1;
 }
 
@@ -286,7 +287,7 @@ static bool init_server()
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
 		log_write("init_server: error creating thread for heartbeat messages\n");
-		return 1;
+		goto cleanup;
 	}
 
 	log_write("Server initialized\n");
@@ -362,6 +363,7 @@ static void process_client_message(int fd)
 	char resp_buffer[MAX_MSG_LEN] = {0};
 	operation_response *response = (operation_response*)resp_buffer;
 	response->hdr.type = MSG_OPERATION_RESP;
+	uint16_t value_sz = 0;
 
 	// Check that requested key is valid if this is supposed to be the primary server
 	int key_srv_id = key_server_id(request->key, num_servers);
@@ -380,8 +382,6 @@ static void process_client_message(int fd)
 	bool secondary_as_primary = (state == KV_UPDATING_PRIMARY && secondary_srv_id == server_id);
 
 	hash_table *table = secondary_as_primary ? &secondary_hash : &primary_hash;
-
-	uint16_t value_sz = 0;
 
 	// Process the request based on its type
 	switch (request->type) {

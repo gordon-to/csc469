@@ -3,7 +3,7 @@
 /*
  * Implementation of the md5 algorithm as described in RFC1321
  * Copyright (C) 2005 Quentin Carbonneaux <crazyjoke@free.fr>
- * 
+ *
  * This file is part of md5sum.
  *
  * md5sum is a free software; you can redistribute it and/or modify
@@ -72,15 +72,15 @@ static unsigned char MD5_PADDING [64] = { /* 512 Bits */
  * An easy way to do the md5 sum of a short memory space
  */
 unsigned char *md5 (unsigned char *M, md5_size len, unsigned char *_digest) {
-	
+
 	int buflen = (len > MD5_BUFFER) ? MD5_BUFFER: len;
 	struct md5_ctx *context;
-	
+
 	context = malloc (sizeof (struct md5_ctx));
 	context->buf = malloc (buflen);
 	context->size = 0;
 	context->bits = 0;
-	
+
 	/* Init registries */
 	context->regs.A = 0x67452301;
 	context->regs.B = 0xefcdab89;
@@ -94,21 +94,21 @@ unsigned char *md5 (unsigned char *M, md5_size len, unsigned char *_digest) {
 	} while (len - context->bits > 64);
 
 	md5_final (_digest, context);
-	
+
 	free (context->buf);
 	free (context);
-	
+
 	return _digest;
 }
 
 
 void md5_init (struct md5_ctx *context) {
-	
+
 	context->buf = malloc (MD5_BUFFER);
 	memset (context->buf, '\0', MD5_BUFFER);
 	context->size = 0;
 	context->bits = 0;
-	
+
 	/* Init registries */
 	context->regs.A = 0x67452301;
 	context->regs.B = 0xefcdab89;
@@ -117,13 +117,13 @@ void md5_init (struct md5_ctx *context) {
 }
 
 
-/** 
- * md5_size is bytes while the size at the end of the message is in bits ... 
+/**
+ * md5_size is bytes while the size at the end of the message is in bits ...
  */
 static void md5_addsize (unsigned char *M, md5_size index, md5_size oldlen) {
-	
+
 	assert (((index * 8) % 512) == 448); /* If padding is not done then exit */
-	
+
 	M[index++] = (unsigned char) ((oldlen << 3) & 0xFF);
 	M[index++] = (unsigned char) ((oldlen >> 5) & 0xFF);
 	M[index++] = (unsigned char) ((oldlen >> 13) & 0xFF);
@@ -137,10 +137,10 @@ static void md5_addsize (unsigned char *M, md5_size index, md5_size oldlen) {
  * Update a context by concatenating a new block
  */
 void md5_update (struct md5_ctx *context) {
-	
+
 	unsigned char buffer [64]; /* 512 bits */
 	int i;
-	
+
 	for (i = 0; context->size - i > 63; i += 64) {
 		memcopy (buffer, context->buf + i, 64);
 		md5_encode (buffer, context);
@@ -153,12 +153,12 @@ void md5_update (struct md5_ctx *context) {
 
 
 void md5_final (unsigned char *digest, struct md5_ctx *context) {
-	
+
 	unsigned char buffer [64]; /* 512 bits */
 	int i;
-	
+
 	assert (context->size < 64);
-	
+
 	if (context->size + 1 > 56) { /* We have to create another block */
 		memcopy (buffer, context->buf, context->size);
 		memcopy (buffer + context->size, MD5_PADDING, 64 - context->size);
@@ -173,7 +173,7 @@ void md5_final (unsigned char *digest, struct md5_ctx *context) {
 	} else {
 		memcopy (buffer, context->buf, context->size);
 		context->bits += context->size;
-		
+
 		memcopy (buffer + context->size, MD5_PADDING, 56 - context->size);
 		md5_addsize (buffer, 56, context->bits);
 		md5_encode (buffer, context);
@@ -191,10 +191,10 @@ void md5_final (unsigned char *digest, struct md5_ctx *context) {
 
 
 static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
-	
+
 	unsigned int a = context->regs.A, b = context->regs.B, c = context->regs.C, d = context->regs.D;
 	unsigned int x[16];
-	
+
 	GET_UINT32 (x[ 0],buffer, 0);
 	GET_UINT32 (x[ 1],buffer, 4);
 	GET_UINT32 (x[ 2],buffer, 8);
@@ -211,7 +211,7 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 	GET_UINT32 (x[13],buffer,52);
 	GET_UINT32 (x[14],buffer,56);
 	GET_UINT32 (x[15],buffer,60);
-	
+
 	/* Round 1 */
 	FF (a, b, c, d, x[ 0], S11, 0xd76aa478); /* 1 */
 	FF (d, a, b, c, x[ 1], S12, 0xe8c7b756); /* 2 */
@@ -229,7 +229,7 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 	FF (d, a, b, c, x[13], S12, 0xfd987193); /* 14 */
 	FF (c, d, a, b, x[14], S13, 0xa679438e); /* 15 */
 	FF (b, c, d, a, x[15], S14, 0x49b40821); /* 16 */
-	
+
 	/* Round 2 */
 	GG (a, b, c, d, x[ 1], S21, 0xf61e2562); /* 17 */
 	GG (d, a, b, c, x[ 6], S22, 0xc040b340); /* 18 */
@@ -242,13 +242,13 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 	GG (a, b, c, d, x[ 9], S21, 0x21e1cde6); /* 25 */
 	GG (d, a, b, c, x[14], S22, 0xc33707d6); /* 26 */
 	GG (c, d, a, b, x[ 3], S23, 0xf4d50d87); /* 27 */
-	
+
 	GG (b, c, d, a, x[ 8], S24, 0x455a14ed); /* 28 */
 	GG (a, b, c, d, x[13], S21, 0xa9e3e905); /* 29 */
 	GG (d, a, b, c, x[ 2], S22, 0xfcefa3f8); /* 30 */
 	GG (c, d, a, b, x[ 7], S23, 0x676f02d9); /* 31 */
 	GG (b, c, d, a, x[12], S24, 0x8d2a4c8a); /* 32 */
-	
+
 	/* Round 3 */
 	HH (a, b, c, d, x[ 5], S31, 0xfffa3942); /* 33 */
 	HH (d, a, b, c, x[ 8], S32, 0x8771f681); /* 34 */
@@ -266,7 +266,7 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 	HH (d, a, b, c, x[12], S32, 0xe6db99e5); /* 46 */
 	HH (c, d, a, b, x[15], S33, 0x1fa27cf8); /* 47 */
 	HH (b, c, d, a, x[ 2], S34, 0xc4ac5665); /* 48 */
-	
+
 	/* Round 4 */
 	II (a, b, c, d, x[ 0], S41, 0xf4292244); /* 49 */
 	II (d, a, b, c, x[ 7], S42, 0x432aff97); /* 50 */
@@ -284,7 +284,7 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 	II (d, a, b, c, x[11], S42, 0xbd3af235); /* 62 */
 	II (c, d, a, b, x[ 2], S43, 0x2ad7d2bb); /* 63 */
 	II (b, c, d, a, x[ 9], S44, 0xeb86d391); /* 64 */
-	
+
 	context->regs.A += a;
 	context->regs.B += b;
 	context->regs.C += c;
@@ -293,18 +293,18 @@ static void md5_encode (unsigned char *buffer, struct md5_ctx *context) {
 
 
 unsigned char* md5sum(const unsigned char *chaine, size_t len) {
-	
+
 	struct md5_ctx ctx;
 	unsigned char *digest = calloc(16, sizeof(char));
-	
+
 	md5_init(&ctx);
 	ctx.size = len?len:strlen((const char*)chaine);
 	memcpy(ctx.buf, chaine, ctx.size);
-	ctx.buf[ctx.size] = 0; 
+	ctx.buf[ctx.size] = 0;
 
 	md5_update(&ctx);
 	md5_final(digest, &ctx);
-	
+
 	return digest;
 }
 
@@ -320,9 +320,9 @@ static void md5_memcopy (unsigned char *dest, unsigned char *src, unsigned int c
 
 static void md5_memset (unsigned char *p, const unsigned char c, const unsigned int count) {
 
-	unsigned int i;	
+	unsigned int i;
 	for (i = 0; i < count; i++) {
 		p [i] = c;
 	}
 }
- 
+
