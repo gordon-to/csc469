@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -Wno-missing-braces -std=gnu99 #-O2 -DNDEBUG
+CFLAGS = -g -Wall -Wno-missing-braces -std=gnu99 -O2 -DNDEBUG
 LDFLAGS = -pthread -lrt
 
 CLIENT_EXE = client
