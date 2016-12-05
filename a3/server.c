@@ -144,15 +144,16 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	(void)arg;
 
 	// Package key/value into request packet
-	operation_request request = {0};
-	request.hdr.type = MSG_OPERATION_REQ;
-	request.type = OP_PUT;
-	memcpy(request.key, key, KEY_SIZE);
-	strncpy(request.value, value, value_sz);
+	char buffer[MAX_MSG_LEN] = {0};
+	operation_request *request = (operation_request *)buffer;
+	request->hdr.type = MSG_OPERATION_REQ;
+	request->type = OP_PUT;
+	memcpy(request->key, key, KEY_SIZE);
+	strncpy(request->value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
 	int new_fd = send_primary ? secondary_fd : primary_fd;
-	send_msg(new_fd, &request, sizeof(request) + value_sz);
+	send_msg(new_fd, request, sizeof(*request) + value_sz);
 }
 
 // Sends a set to a replacement server for recovery
