@@ -1,0 +1,3 @@
+mserver -c 12345 -s 12349 12340 -C srvcfg_local.txt
+
+client -h localhost -p 12345
