@@ -1,0 +1,3 @@
+small key set, single client
+0 1
+ops_100_0_1000_1000_1.txt 1 10

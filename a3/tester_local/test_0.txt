@@ -1,0 +1,3 @@
+short, single client
+0 1
+ops_short.txt 1 5
