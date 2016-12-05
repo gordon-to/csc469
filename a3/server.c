@@ -360,7 +360,8 @@ static void process_client_message(int fd)
 
 	// When normal or updating secondary (Sc), we're targetting the primary set
 	// If this is Sb, then we can target either set
-	if ((state == KV_UPDATING_PRIMARY && secondary_srv_id != server_id) && (key_srv_id != server_id)) {
+	if ((state == KV_UPDATING_PRIMARY && secondary_srv_id != server_id && key_srv_id != server_id) ||
+	    (state != KV_UPDATING_PRIMARY && key_srv_id != server_id)) {
 		log_write("sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
 		response->status = KEY_NOT_FOUND;
 		send_msg(fd, response, sizeof(*response));
