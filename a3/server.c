@@ -430,14 +430,15 @@ static void process_client_message(int fd)
 			if (fd_is_valid(forward_fd)) {
 				send_msg(forward_fd, request, request->hdr.length);
 
-				operation_response server_resp = {0};
-				if (!recv_msg(forward_fd, &server_resp, sizeof(server_resp), MSG_OPERATION_RESP)) {
+				char forward_resp_buffer[MAX_MSG_LEN] = {0};
+				operation_response *forward_server_resp = (operation_response *)forward_resp_buffer;
+				if (!recv_msg(forward_fd, forward_server_resp, sizeof(*forward_server_resp), MSG_OPERATION_RESP)) {
 					hash_unlock(table, request->key);
 					return;
 				}
 
-				if (server_resp.status != SUCCESS) {
-					log_write("Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[server_resp.status]);
+				if (forward_server_resp->status != SUCCESS) {
+					log_write("Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[forward_server_resp->status]);
 					hash_unlock(table, request->key);
 					return;
 				}
