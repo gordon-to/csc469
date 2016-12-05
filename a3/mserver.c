@@ -663,14 +663,16 @@ static bool run_mserver_loop()
 				int Saa = i;
 
 				char host_name_temp[HOST_NAME_MAX];
-				strcpy(host_name_temp, node->host_name);
+				strncpy(host_name_temp, node->host_name, HOST_NAME_MAX);
 
 				// Servers/client/mserver port numbers
 				uint16_t sport_temp = node->sport;
 				uint16_t cport_temp = node->cport;
 				uint16_t mport_temp = node->mport;
 
-				FD_CLR(node->socket_fd_in, &allset);
+				if (fd_is_valid(node->socket_fd_in) && FD_ISSET(node->socket_fd_in, &rset)) {
+					FD_CLR(node->socket_fd_in, &allset);
+				}
 
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
@@ -686,7 +688,7 @@ static bool run_mserver_loop()
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
-				strcpy(server_nodes[Saa].host_name, host_name_temp);
+				strncpy(server_nodes[Saa].host_name, host_name_temp, HOST_NAME_MAX);
 				server_nodes[Saa].sport = sport_temp;
 				server_nodes[Saa].cport = cport_temp;
 				server_nodes[Saa].mport = mport_temp;
