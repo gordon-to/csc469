@@ -673,10 +673,7 @@ static bool run_mserver_loop()
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
-				if (fd_is_valid(node->socket_fd_in) && FD_ISSET(node->socket_fd_in, &rset)) {
-					close_safe(&(node->socket_fd_in));
-					FD_CLR(node->socket_fd_in, &allset);
-				}
+				close_safe(&(node->socket_fd_in));
 
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
