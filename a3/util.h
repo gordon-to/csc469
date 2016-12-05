@@ -19,6 +19,11 @@ void open_log(const char *file_name);
 // Accepts a variable-length list of arguments (like printf)
 void log_write(const char *format, ...);
 
+// perror()-style function for writing errors to both stderr and the log file
+// Prefixes messages with the pid of the calling process, so that you can distinguish between messages from mserver and
+// servers; pids of the server processes are available in mserver.c in the server_node structs
+void log_perror(const char *function);
+
 // Convert a key to its string represenation; the resulting string is allocated on stack
 #define key_to_str(key)                         \
 ({                                              \

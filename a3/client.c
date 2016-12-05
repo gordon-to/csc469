@@ -80,6 +80,7 @@ typedef struct _operation {
 	char value[MAX_STR_LEN];
 	char type;// noop/get/put/check
 	int count;
+	int index;// corresponds to line number in the operation file
 } operation;
 
 typedef struct _result {
@@ -245,7 +246,8 @@ static bool check_operation_result(const operation *op, const result *res)
 
 	// Check if the operation succeeded (except for the special case of CHECK with no value)
 	if ((res->status != SUCCESS) && !((op->type == OP_TYPE_CHECK) && (op->value[0] == '\0'))) {
-		fprintf(stderr, "Operation failed with: %s\n", op_status_str[res->status]);
+		fprintf(stderr, "Operation #%d failed with: %s\n", op->index, op_status_str[res->status]);
+		log_write("Operation #%d failed with: %s\n", op->index, op_status_str[res->status]);
 		return false;
 	}
 
@@ -254,10 +256,12 @@ static bool check_operation_result(const operation *op, const result *res)
 
 		case OP_TYPE_GET:
 			printf("value[\"%s\"] == \"%s\"\n", op->key, res->value);
+			log_write("value[\"%s\"] == \"%s\"\n", op->key, res->value);
 			return true;
 
 		case OP_TYPE_PUT:
 			printf("value[\"%s\"] <- \"%s\"\n", op->key, op->value);
+			log_write("value[\"%s\"] <- \"%s\"\n", op->key, op->value);
 			return true;
 
 		case OP_TYPE_CHECK:
@@ -265,21 +269,26 @@ static bool check_operation_result(const operation *op, const result *res)
 				// Expect KEY_NOT_FOUND as the result
 				if (res->status == KEY_NOT_FOUND) {
 					printf("Check passed: key \"%s\" not found\n", op->key);
+					log_write("Check passed: key \"%s\" not found\n", op->key);
 					return true;
 				}
 				if (res->status == SUCCESS) {
-					fprintf(stderr, "Check failed: value[\"%s\"] == \"%s\" != none\n", op->key, res->value);
+					fprintf(stderr, "Check #%d failed: value[\"%s\"] == \"%s\" != none\n", op->index, op->key, res->value);
+					log_write("Check #%d failed: value[\"%s\"] == \"%s\" != none\n", op->index, op->key, res->value);
 					return false;
 				}
-				fprintf(stderr, "Operation failed with: %s\n", op_status_str[res->status]);
+				fprintf(stderr, "Operation #%d failed with: %s\n", op->index, op_status_str[res->status]);
+				log_write("Operation #%d failed with: %s\n", op->index, op_status_str[res->status]);
 				return false;
 			}
 
 			if (strcmp(op->value, res->value) == 0) {
 				printf("Check passed: value[\"%s\"] == \"%s\"\n", op->key, res->value);
+				log_write("Check passed: value[\"%s\"] == \"%s\"\n", op->key, res->value);
 				return true;
 			}
-			fprintf(stderr, "Check failed: value[\"%s\"] == \"%s\" != \"%s\"\n", op->key, res->value, op->value);
+			fprintf(stderr, "Check #%d failed: value[\"%s\"] == \"%s\" != \"%s\"\n", op->index, op->key, res->value, op->value);
+			log_write("Check #%d failed: value[\"%s\"] == \"%s\" != \"%s\"\n", op->index, op->key, res->value, op->value);
 			return false;
 
 		default:// impossible
@@ -306,6 +315,7 @@ static bool execute_operations(FILE *input)
 	assert(input != NULL);
 	bool success = true;
 
+	int index = 1;
 	char line[MAX_STR_LEN] = "";
 	prompt(input);
 	while (fgets(line, sizeof(line), input) != NULL) {
@@ -326,10 +336,11 @@ static bool execute_operations(FILE *input)
 			fprintf(stderr, "Invalid operation format\n");
 			goto next;
 		}
+		op.index = index++;
 
 		// Print operation if not interactive
 		if (input != stdin) {
-			printf("%c \"%s\" \"%s\" %d\n", op.type, op.key, op.value, op.count);
+			printf("#%d: %c \"%s\" \"%s\" %d\n", op.index, op.type, op.key, op.value, op.count);
 		}
 
 		// Execute the operation (possibly multiple times)
@@ -340,7 +351,8 @@ static bool execute_operations(FILE *input)
 					success = false;
 				}
 			} else {
-				fprintf(stderr, "Operation failed with: %s\n", op_status_str[res.status]);
+				fprintf(stderr, "Operation #%d failed with: %s\n", op.index, op_status_str[res.status]);
+				log_write("Operation #%d failed with: %s\n", op.index, op_status_str[res.status]);
 				success = false;
 			}
 		}
