@@ -670,6 +670,9 @@ static bool run_mserver_loop()
 				uint16_t cport_temp = node->cport;
 				uint16_t mport_temp = node->mport;
 
+				// Make sure that you properly account for the newly opened connections
+				// (socket fds) to/from the replacement server, including the fd sets
+				// used in select() in the main mserver loop, and some other places.
 				if (fd_is_valid(node->socket_fd_in) && FD_ISSET(node->socket_fd_in, &rset)) {
 					close_safe(&(node->socket_fd_in));
 					FD_CLR(node->socket_fd_in, &allset);
@@ -686,9 +689,6 @@ static bool run_mserver_loop()
 				FD_SET(node->socket_fd_in, &allset);
 				maxfd = max(maxfd, node->socket_fd_in);
 
-				// Make sure that you properly account for the newly opened connections
-				// (socket fds) to/from the replacement server, including the fd sets
-				// used in select() in the main mserver loop, and some other places.
 				strncpy(server_nodes[Saa].host_name, host_name_temp, HOST_NAME_MAX);
 				server_nodes[Saa].sport = sport_temp;
 				server_nodes[Saa].cport = cport_temp;
@@ -702,11 +702,10 @@ static bool run_mserver_loop()
 
 				server_nodes[Saa].ignore_put = false;
 
-				int Sb = secondary_server_id(Saa, num_servers);
-
 				/*
 				2. M sends Sb a UPDATE-PRIMARY message containing information on Saa.
 				*/
+				int Sb = secondary_server_id(Saa, num_servers);
 				send_request(Sb, Saa, UPDATE_PRIMARY);
 
 				/*
