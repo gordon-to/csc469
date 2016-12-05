@@ -671,6 +671,7 @@ static bool run_mserver_loop()
 				uint16_t mport_temp = node->mport;
 
 				if (fd_is_valid(node->socket_fd_in) && FD_ISSET(node->socket_fd_in, &rset)) {
+					close_safe(&(node->socket_fd_in));
 					FD_CLR(node->socket_fd_in, &allset);
 				}
 
