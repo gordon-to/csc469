@@ -108,6 +108,7 @@ static pthread_t heartbeat_thread;
 
 // For recovery flow
 static kv_server_state state;
+static bool send_primary;
 static pthread_t send_replacement_primary_thread;
 static pthread_t send_replacement_secondary_thread;
 
@@ -138,9 +139,9 @@ static void *heartbeat_task(void *args)
 	return NULL;
 }
 
-static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t value_sz, void *send_primary_void_ptr)
+static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t value_sz, void *arg)
 {
-	bool *send_primary = (bool *)send_primary_void_ptr;
+	(void)arg;
 
 	// Package key/value into request packet
 	operation_request request = {0};
@@ -150,28 +151,28 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	strncpy(request.value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
-	int fd = *send_primary ? secondary_fd : primary_fd;
-	send_msg(fd, &request, sizeof(request) + value_sz);
+	int new_fd = send_primary ? secondary_fd : primary_fd;
+	send_msg(new_fd, &request, sizeof(request) + value_sz);
 }
 
 // Sends a set to a replacement server for recovery
-static void *send_table_task(void *send_primary_void_ptr)
+static void *send_table_task(void *arg)
 {
+	(void)arg;
+
 	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
 		perror("send_table_task pthread_setcanceltype");
 		return (void*)-1;
 	}
 
-	bool *send_primary = (bool *)send_primary_void_ptr;
-
-	hash_table *table = *send_primary ? &primary_hash : &secondary_hash;
-	hash_iterate(table, send_table_iterator_f, send_primary);
+	hash_table *table = send_primary ? &primary_hash : &secondary_hash;
+	hash_iterate(table, send_table_iterator_f, NULL);
 
 	// 8/10. Send confirmation to M server when done sending the set
 	mserver_ctrl_request request = {0};
 	request.hdr.type = MSG_MSERVER_CTRL_REQ;
 	request.server_id = server_id;
-	request.type = *send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
+	request.type = send_primary ? UPDATED_SECONDARY : UPDATED_PRIMARY;
 	send_msg(mserver_fd_out, &request, sizeof(request));
 
 	state = KV_SERVER_ONLINE;
@@ -180,32 +181,28 @@ static void *send_table_task(void *send_primary_void_ptr)
 }
 
 // Sends secondary set to a replacement key-value server as part of the recovery flow
-static int send_to_replacement(const char *host_name, uint16_t port, bool send_primary)
+static int send_to_replacement(const char *host_name, uint16_t port)
 {
 	pthread_t *replacement_thread = NULL;
-	int orig_fd = -1;
+
+	int new_fd;
+	if ((new_fd = connect_to_server(host_name, port)) < 0) {
+		log_write("send_to_replacement: error connecting to new secondary_fd\n");
+		goto send_replacement_failed;
+	}
 
 	// Connect to the new recovery server
 	if (send_primary) {
-		orig_fd = secondary_fd;
-
 		// Sc: connect to new Saa as secondary
-		if ((secondary_fd = connect_to_server(host_name, port)) < 0) {
-			log_write("send_to_replacement: error connecting to new secondary_fd\n");
-			goto send_replacement_failed;
-		}
+		close_safe(&secondary_fd);
+		secondary_fd = new_fd;
 
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
 	} else {
-		orig_fd = primary_fd;
-
-		// Sb: connect to new Saa as temp secondary (i.e. primary)
-		if ((primary_fd = connect_to_server(host_name, port)) < 0) {
-			log_write("send_to_replacement: error connecting to new primary_fd\n");
-			goto send_replacement_failed;
-		}
+		close_safe(&primary_fd);
+		primary_fd = new_fd;
 
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
@@ -213,23 +210,16 @@ static int send_to_replacement(const char *host_name, uint16_t port, bool send_p
 	}
 
 	// Spawn a new thread to asynchronously send the set to the replacement server
-	if (pthread_create(replacement_thread, NULL, send_table_task, &send_primary)) {
+	if (pthread_create(replacement_thread, NULL, send_table_task, NULL)) {
 		log_write("send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
-
-	close_safe(&orig_fd);
 
 	return 0;
 
 send_replacement_failed:
 	// Rollback
 	state = KV_SERVER_ONLINE;
-	if (send_primary) {
-		secondary_fd = orig_fd;
-	} else {
-		primary_fd = orig_fd;
-	}
 
 	// Send FAILED message to M server
 	mserver_ctrl_request request = {0};
@@ -594,13 +584,15 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 		}
 
 		case UPDATE_PRIMARY: {
-			response.status = (send_to_replacement(request->host_name, request->port, false) < 0)
+			send_primary = false;
+			response.status = (send_to_replacement(request->host_name, request->port) < 0)
 			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 		}
 
 		case UPDATE_SECONDARY: {
-			response.status = (send_to_replacement(request->host_name, request->port, true) < 0)
+			send_primary = true;
+			response.status = (send_to_replacement(request->host_name, request->port) < 0)
 			                ? CTRLREQ_FAILURE : CTRLREQ_SUCCESS;
 			break;
 		}
