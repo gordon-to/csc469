@@ -711,7 +711,10 @@ static bool run_mserver_loop()
 				int Sc = primary_server_id(Saa, num_servers);
 				send_request(Sc, Saa, UPDATE_SECONDARY);
 
-				// This continues in the message handler
+				// This continues in the message handler...
+
+				// We'll let the loop continue to potentially handle other messages first
+				break;
 			}
 		}
 
