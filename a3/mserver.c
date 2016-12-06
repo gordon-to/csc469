@@ -95,9 +95,9 @@ typedef struct _server_node {
 
 	// Fields for additional server state information
 	time_t last_heartbeat;
-	kv_server_state server_status;
-	bool updated_primary_accepted;
-	bool updated_secondary_accepted;
+	kv_server_state state;
+	bool updated_primary;
+	bool updated_secondary;
 	bool ignore_put;
 } server_node;
 
@@ -423,24 +423,19 @@ static bool send_request(int sid, int sid2, server_ctrlreq_type ctrlreq_type)
 	}
 
 	// Send the request and receive the response
-	if (fd_is_valid(server_nodes[sid].socket_fd_out)) {
-		server_ctrl_response response = {0};
-		if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
-			!recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
-		{
-			return false;
-		}
-
-		if (response.status != CTRLREQ_SUCCESS) {
-			fprintf(stderr, "Server %d failed %sY\n", sid, server_ctrlreq_type_str[ctrlreq_type]);
-			return false;
-		}
-
-		return true;
+	server_ctrl_response response = {0};
+	if (!send_msg(server_nodes[sid].socket_fd_out, request, sizeof(*request) + host_name_len) ||
+		!recv_msg(server_nodes[sid].socket_fd_out, &response, sizeof(response), MSG_SERVER_CTRL_RESP))
+	{
+		return false;
 	}
 
-	fprintf(stderr, "Failed to send_request\n");
-	return false;
+	if (response.status != CTRLREQ_SUCCESS) {
+		fprintf(stderr, "Server %d failed %sY\n", sid, server_ctrlreq_type_str[ctrlreq_type]);
+		return false;
+	}
+
+	return true;
 }
 
 // Start all key-value servers
@@ -479,7 +474,7 @@ static void process_client_message(int fd)
 	int server_id = key_server_id(request.key, num_servers);
 
 	// Redirect client requests to the secondary replica while the primary is being recovered
-	if (server_nodes[server_id].server_status != KV_SERVER_ONLINE) {
+	if (server_nodes[server_id].state != KV_SERVER_ONLINE) {
 		server_id = secondary_server_id(server_id, num_servers);
 	}
 
@@ -530,7 +525,7 @@ static void handle_switch_primary(int Saa, int Sb) {
 	server_nodes[Saa].ignore_put = false;
 	server_nodes[Sb].ignore_put = false;
 
-	server_nodes[Saa].server_status = KV_SERVER_ONLINE;
+	server_nodes[Saa].state = KV_SERVER_ONLINE;
 }
 
 // Returns false if the message was invalid (so the connection will be closed)
@@ -559,8 +554,8 @@ static bool process_server_message(int fd)
 			*/
 			int Sb = request->server_id;
 			int Saa = primary_server_id(Sb, num_servers);
-			server_nodes[Saa].updated_primary_accepted = true;
-			if (server_nodes[Saa].updated_primary_accepted && server_nodes[Saa].updated_secondary_accepted) {
+			server_nodes[Saa].updated_primary = true;
+			if (server_nodes[Saa].updated_primary && server_nodes[Saa].updated_secondary) {
 				handle_switch_primary(Saa, Sb);
 			}
 
@@ -580,8 +575,8 @@ static bool process_server_message(int fd)
 			int Saa = secondary_server_id(Sc, num_servers);
 			int Sb = secondary_server_id(Saa, num_servers);
 
-			server_nodes[Saa].updated_secondary_accepted = true;
-			if (server_nodes[Saa].updated_primary_accepted && server_nodes[Saa].updated_secondary_accepted) {
+			server_nodes[Saa].updated_secondary = true;
+			if (server_nodes[Saa].updated_primary && server_nodes[Saa].updated_secondary) {
 				handle_switch_primary(Saa, Sb);
 			}
 
@@ -660,7 +655,7 @@ static bool run_mserver_loop()
 				log_write("Node %d heartbeat check failed at %s\n", node->sid, current_time_str());
 
 				// Mark timed out node as failed
-				node->server_status = KV_SERVER_FAILED;
+				node->state = KV_SERVER_FAILED;
 				int Saa = i;
 
 				char host_name_temp[HOST_NAME_MAX];
@@ -693,10 +688,10 @@ static bool run_mserver_loop()
 				server_nodes[Saa].mport = mport_temp;
 
 				server_nodes[Saa].last_heartbeat = time(NULL);
-				server_nodes[Saa].server_status = KV_SERVER_RECON;
+				server_nodes[Saa].state = KV_SERVER_RECON;
 
-				server_nodes[Saa].updated_primary_accepted = false;
-				server_nodes[Saa].updated_secondary_accepted = false;
+				server_nodes[Saa].updated_primary = false;
+				server_nodes[Saa].updated_secondary = false;
 
 				server_nodes[Saa].ignore_put = false;
 
