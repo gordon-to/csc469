@@ -419,6 +419,8 @@ static void process_client_message(int fd)
 				break;
 			}
 
+			hash_unlock(table, request->key);
+
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
@@ -438,8 +440,6 @@ static void process_client_message(int fd)
 					return;
 				}
 			}
-
-			hash_unlock(table, request->key);
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
@@ -701,12 +701,10 @@ static bool run_server_loop()
 	// Usual preparation stuff for select()
 	fd_set rset, allset;
 	FD_ZERO(&allset);
-	FD_SET(my_clients_fd, &allset);
 	FD_SET(my_servers_fd, &allset);
 	FD_SET(my_mservers_fd, &allset);
 
-	int maxfd = max(my_clients_fd, my_servers_fd);
-	maxfd = max(maxfd, my_mservers_fd);
+	int maxfd = max(my_servers_fd, my_mservers_fd);
 
 	// Server sits in an infinite loop waiting for incoming connections from mserver/servers/client
 	// and for incoming messages from already connected mserver/servers/clients
