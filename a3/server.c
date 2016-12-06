@@ -102,6 +102,8 @@ static int secondary_sid = -1;
 static int secondary_fd = -1;
 
 
+static pthread_t client_thread;
+
 // Period heartbeat messages
 static const int heartbeat_interval = 1;  // in seconds
 static pthread_t heartbeat_thread;
@@ -312,12 +314,13 @@ static void cleanup()
 	hash_iterate(&secondary_hash, clean_iterator_f, NULL);
 	hash_cleanup(&secondary_hash);
 
-	// Cancel heartbeat thread
+	// Cancel threads
+	if (client_thread) {
+		pthread_cancel(client_thread);
+	}
 	if (heartbeat_thread) {
 		pthread_cancel(heartbeat_thread);
 	}
-
-	// Cancel threads for asynchronously sending sets to the recovering server
 	if (send_replacement_primary_thread) {
 		pthread_cancel(send_replacement_primary_thread);
 	}
@@ -624,9 +627,77 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 	return true;
 }
 
+static void *process_client_task(void *args)
+{
+	// Usual preparation stuff for select()
+	fd_set rset, allset;
+	FD_ZERO(&allset);
+	FD_SET(my_clients_fd, &allset);;
+
+	int maxfd = my_clients_fd;
+
+	for (;;) {
+		rset = allset;
+
+		int num_ready_fds = select(maxfd + 1, &rset, NULL, NULL, NULL);
+		if (num_ready_fds < 0) {
+			perror("select");
+			return false;
+		}
+
+		if (num_ready_fds <= 0) {
+			continue;
+		}
+
+		// Incoming connection from a client
+		if (FD_ISSET(my_clients_fd, &rset)) {
+			int fd_idx = accept_connection(my_clients_fd, client_fd_table, MAX_CLIENT_SESSIONS);
+			if (fd_idx >= 0) {
+				FD_SET(client_fd_table[fd_idx], &allset);
+				maxfd = max(maxfd, client_fd_table[fd_idx]);
+			}
+
+			if (--num_ready_fds <= 0) {
+				continue;
+			}
+		}
+
+		// Check for any messages from connected clients
+		for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
+			if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
+				// Explicitely ignore client requests while handling SWITCH_PRIMARY
+				if (state == KV_SWITCHING_PRIMARY) {
+					operation_response response = {0};
+					response.hdr.type = MSG_OPERATION_RESP;
+					response.status = SERVER_FAILURE;
+					send_msg(client_fd_table[i], &response, sizeof(response));
+				} else {
+					process_client_message(client_fd_table[i]);
+				}
+
+				// Close connection after processing (semantics are "one connection per request")
+				FD_CLR(client_fd_table[i], &allset);
+				close_safe(&(client_fd_table[i]));
+
+				if (--num_ready_fds <= 0) {
+					break;
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_server_loop()
 {
+	// Spawn a new thread to handle client requests
+	if (pthread_create(&client_thread, NULL, process_client_task, NULL)) {
+		perror("run_server_loop: client thread create\n");
+		return false;
+	}
+
 	// Usual preparation stuff for select()
 	fd_set rset, allset;
 	FD_ZERO(&allset);
@@ -679,19 +750,6 @@ static bool run_server_loop()
 			}
 		}
 
-		// Incoming connection from a client
-		if (FD_ISSET(my_clients_fd, &rset)) {
-			int fd_idx = accept_connection(my_clients_fd, client_fd_table, MAX_CLIENT_SESSIONS);
-			if (fd_idx >= 0) {
-				FD_SET(client_fd_table[fd_idx], &allset);
-				maxfd = max(maxfd, client_fd_table[fd_idx]);
-			}
-
-			if (--num_ready_fds <= 0) {
-				continue;
-			}
-		}
-
 		// Check for any messages from the metadata server
 		if ((mserver_fd_in != -1) && FD_ISSET(mserver_fd_in, &rset)) {
 			bool shutdown_requested = false;
@@ -724,29 +782,6 @@ static bool run_server_loop()
 		}
 		if (num_ready_fds <= 0) {
 			continue;
-		}
-
-		// Check for any messages from connected clients
-		for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
-			if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
-				// Explicitely ignore client requests while handling SWITCH_PRIMARY
-				if (state == KV_SWITCHING_PRIMARY) {
-					operation_response response = {0};
-					response.hdr.type = MSG_OPERATION_RESP;
-					response.status = SERVER_FAILURE;
-					send_msg(client_fd_table[i], &response, sizeof(response));
-				} else {
-					process_client_message(client_fd_table[i]);
-				}
-
-				// Close connection after processing (semantics are "one connection per request")
-				FD_CLR(client_fd_table[i], &allset);
-				close_safe(&(client_fd_table[i]));
-
-				if (--num_ready_fds <= 0) {
-					break;
-				}
-			}
 		}
 	}
 }

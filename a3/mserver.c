@@ -246,6 +246,7 @@ static void cleanup()
 		server_nodes = NULL;
 	}
 
+	// Cancel threads
 	if (client_thread) {
 		pthread_cancel(client_thread);
 	}
