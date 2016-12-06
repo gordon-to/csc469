@@ -731,11 +731,10 @@ static bool run_server_loop()
 			if ((client_fd_table[i] != -1) && FD_ISSET(client_fd_table[i], &rset)) {
 				// Explicitely ignore client requests while handling SWITCH_PRIMARY
 				if (state == KV_SWITCHING_PRIMARY) {
-					char resp_buffer[MAX_MSG_LEN] = {0};
-					operation_response *response = (operation_response*)resp_buffer;
-					response->hdr.type = MSG_OPERATION_RESP;
-					response->status = SERVER_FAILURE;
-					send_msg(client_fd_table[i], response, sizeof(*response));
+					operation_response response = {0};
+					response.hdr.type = MSG_OPERATION_RESP;
+					response.status = SERVER_FAILURE;
+					send_msg(client_fd_table[i], &response, sizeof(response));
 				} else {
 					process_client_message(client_fd_table[i]);
 				}

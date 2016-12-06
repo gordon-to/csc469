@@ -478,7 +478,7 @@ static void process_client_message(int fd)
 		server_id = secondary_server_id(server_id, num_servers);
 	}
 
-	if (server_nodes[server_id].ignore_put == true) {
+	if (server_nodes[server_id].ignore_put) {
 		return;
 	}
 
@@ -692,7 +692,6 @@ static bool run_mserver_loop()
 
 				server_nodes[Saa].updated_primary = false;
 				server_nodes[Saa].updated_secondary = false;
-
 				server_nodes[Saa].ignore_put = false;
 
 				/*
