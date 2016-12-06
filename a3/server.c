@@ -188,7 +188,7 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 
 	int new_fd;
 	if ((new_fd = connect_to_server(host_name, port)) < 0) {
-		log_write("send_to_replacement: error connecting to new secondary_fd\n");
+		fprintf(stderr, "send_to_replacement: error connecting to new secondary_fd\n");
 		goto send_replacement_failed;
 	}
 
@@ -212,7 +212,7 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 
 	// Spawn a new thread to asynchronously send the set to the replacement server
 	if (pthread_create(replacement_thread, NULL, send_table_task, NULL)) {
-		log_write("send_to_replacement: error creating thread\n");
+		fprintf(stderr, "send_to_replacement: error creating thread\n");
 		goto send_replacement_failed;
 	}
 
@@ -275,7 +275,7 @@ static bool init_server()
 
 	// Create a separate thread that takes care of sending periodic heartbeat messages
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat_task, NULL)) {
-		log_write("init_server: error creating thread for heartbeat messages\n");
+		perror("init_server: heartbeat thread create\n");
 		goto cleanup;
 	}
 
@@ -339,7 +339,7 @@ static void cleanup()
 // Connection will be closed after calling this function regardless of result
 static void process_client_message(int fd)
 {
-	log_write("%s Receiving a client message\n", current_time_str());
+	// log_write("%s Receiving a client message\n", current_time_str());
 
 	// Read and parse the message
 	char req_buffer[MAX_MSG_LEN] = {0};
@@ -362,7 +362,7 @@ static void process_client_message(int fd)
 	// If this is Sb, then we can target either set
 	if ((state != KV_UPDATING_PRIMARY && key_srv_id != server_id) ||
 	    (state == KV_UPDATING_PRIMARY && key_srv_id != server_id && secondary_srv_id != server_id)) {
-		log_write("sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
+		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
 		response->status = SERVER_FAILURE;
 		send_msg(fd, response, sizeof(*response));
 		return;
@@ -386,7 +386,7 @@ static void process_client_message(int fd)
 
 			// Get the value for requested key from the hash table
 			if (!hash_get(table, request->key, &data, &size)) {
-				log_write("Key %s not found\n", key_to_str(request->key));
+				fprintf(stderr, "Key %s not found\n", key_to_str(request->key));
 				response->status = KEY_NOT_FOUND;
 				break;
 			}
@@ -440,7 +440,7 @@ static void process_client_message(int fd)
 				}
 
 				if (forward_server_resp->status != SUCCESS) {
-					log_write("Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[forward_server_resp->status]);
+					fprintf(stderr, "Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[forward_server_resp->status]);
 					hash_unlock(table, request->key);
 					return;
 				}
@@ -471,7 +471,7 @@ static void process_client_message(int fd)
 // (in both cases the connection will be closed)
 static bool process_server_message(int fd)
 {
-	log_write("%s Receiving a server message\n", current_time_str());
+	// log_write("%s Receiving a server message\n", current_time_str());
 
 	// Read and parse the message
 	char req_buffer[MAX_MSG_LEN] = {0};
@@ -489,7 +489,7 @@ static bool process_server_message(int fd)
 	switch (request->type) {
 		// NOOP operation request is used to indicate the last message in an UPDATE sequence
 		case OP_NOOP: {
-			log_write("Received the last server message, closing connection\n");
+			// log_write("Received the last server message, closing connection\n");
 			return false;
 		}
 
@@ -513,7 +513,7 @@ static bool process_server_message(int fd)
 
 			// Somehow this server isn't the primary nor secondary server for the given key
 			if (server_id != primary_srv_id && server_id != secondary_srv_id) {
-				log_write("sid %d: Received server message but this server does not handle the key\n", server_id);
+				fprintf(stderr, "sid %d: Received server message but this server does not handle the key\n", server_id);
 				response->status = SERVER_FAILURE;
 				break;
 			}
@@ -563,7 +563,7 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 	assert(shutdown_requested != NULL);
 	*shutdown_requested = false;
 
-	log_write("%s Receiving a metadata server message\n", current_time_str());
+	// log_write("%s Receiving a metadata server message\n", current_time_str());
 
 	// Read and parse the message
 	char req_buffer[MAX_MSG_LEN] = {0};

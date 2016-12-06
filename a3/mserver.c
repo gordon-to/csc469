@@ -467,7 +467,7 @@ static bool init_servers()
 // Connection will be closed after calling this function regardless of result
 static void process_client_message(int fd)
 {
-	log_write("%s Receiving a client message\n", current_time_str());
+	// log_write("%s Receiving a client message\n", current_time_str());
 
 	// Read and parse the message
 	locate_request request = {0};
@@ -536,7 +536,7 @@ static void handle_switch_primary(int Saa, int Sb) {
 // Returns false if the message was invalid (so the connection will be closed)
 static bool process_server_message(int fd)
 {
-	log_write("%s Receiving a server message\n", current_time_str());
+	// log_write("%s Receiving a server message\n", current_time_str());
 
 	// Read and parse the message
 	char req_buffer[MAX_MSG_LEN] = {0};
@@ -603,7 +603,7 @@ static bool process_server_message(int fd)
 
 
 static const int select_timeout_interval = 1; // seconds
-static const int heartbeat_check_diff = 2; // seconds
+static const int heartbeat_check_diff = 3; // seconds
 
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_mserver_loop()
@@ -657,7 +657,7 @@ static bool run_mserver_loop()
 			server_node *node = &(server_nodes[i]);
 
 			if (node->last_heartbeat && (difftime(time(NULL), node->last_heartbeat) > heartbeat_check_diff)) {
-				log_write("Node %d heartbeat check failed\n", node->sid);
+				log_write("Node %d heartbeat check failed at %s\n", node->sid, current_time_str());
 
 				// Mark timed out node as failed
 				node->server_status = KV_SERVER_FAILED;
@@ -674,7 +674,7 @@ static bool run_mserver_loop()
 				// Make sure that you properly account for the newly opened connections
 				// (socket fds) to/from the replacement server, including the fd sets
 				// used in select() in the main mserver loop, and some other places.
-				close_safe(&(node->socket_fd_in));
+				// close_safe(&(node->socket_fd_in));
 
 				/*
 				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
