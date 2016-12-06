@@ -121,11 +121,6 @@ static const int hash_size = 65536;
 // Sends periodic heartbeat messages to metadata server
 static void *heartbeat_task(void *args)
 {
-	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
-		perror("heartbeat_task pthread_setcanceltype");
-		return (void*)-1;
-	}
-
 	for (;;) {
 		mserver_ctrl_request request = {0};
 		request.hdr.type = MSG_MSERVER_CTRL_REQ;
@@ -160,11 +155,6 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 static void *send_table_task(void *arg)
 {
 	(void)arg;
-
-	if (pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0) {
-		perror("send_table_task pthread_setcanceltype");
-		return (void*)-1;
-	}
 
 	hash_table *table = send_primary ? &primary_hash : &secondary_hash;
 	hash_iterate(table, send_table_iterator_f, NULL);
