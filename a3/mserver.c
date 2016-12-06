@@ -106,6 +106,8 @@ static int num_servers = 0;
 // Server state information
 static server_node *server_nodes = NULL;
 
+static time_t curtime = NULL;
+
 // Read the configuration file, fill in the server_nodes array
 // Returns false if the configuration is invalid
 static bool read_config_file()
@@ -543,7 +545,7 @@ static bool process_server_message(int fd)
 	// Read and process the message
 	switch (request->type) {
 		case HEARTBEAT: {
-			server_nodes[request->server_id].last_heartbeat = time(NULL);
+			server_nodes[request->server_id].last_heartbeat = curtime;
 			break;
 		}
 
@@ -644,6 +646,8 @@ static bool run_mserver_loop()
 			}
 		}
 
+		curtime = time(NULL);
+
 		// Failure detection and recovery
 		// Need to go through the list of servers and figure out which servers have not sent a heartbeat message yet
 		// within the timeout interval. Keep information in the server_node structure regarding when was the last
@@ -651,7 +655,7 @@ static bool run_mserver_loop()
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
 
-			if (node->last_heartbeat && (difftime(time(NULL), node->last_heartbeat) > heartbeat_check_diff)) {
+			if (node->last_heartbeat && (difftime(curtime, node->last_heartbeat) > heartbeat_check_diff)) {
 				log_write("Node %d heartbeat check failed at %s\n", node->sid, current_time_str());
 
 				// Mark timed out node as failed
@@ -687,7 +691,7 @@ static bool run_mserver_loop()
 				server_nodes[Saa].cport = cport_temp;
 				server_nodes[Saa].mport = mport_temp;
 
-				server_nodes[Saa].last_heartbeat = time(NULL);
+				server_nodes[Saa].last_heartbeat = curtime;
 				server_nodes[Saa].state = KV_SERVER_RECON;
 
 				server_nodes[Saa].updated_primary = false;
