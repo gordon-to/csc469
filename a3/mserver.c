@@ -602,8 +602,8 @@ static bool process_server_message(int fd)
 }
 
 
-static const int select_timeout_interval = 1; // seconds
-static const int heartbeat_check_diff = 3; // seconds
+static const int select_timeout_interval = 1; // in seconds
+static const int heartbeat_check_diff = 5;    // in seconds
 
 // Returns false if stopped due to errors, true if shutdown was requested
 static bool run_mserver_loop()
