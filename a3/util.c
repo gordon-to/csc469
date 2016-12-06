@@ -756,6 +756,7 @@ pid_t waitpid_timeout(pid_t pid, int *status, int timeout)
 bool wait_or_kill(pid_t pid, int timeout)
 {
 	if (waitpid_timeout(pid, NULL, timeout) > 0) {
+		log_write("Child process %d is already dead\n", pid);
 		return true;
 	}
 

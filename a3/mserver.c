@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 
 #include "defs.h"
 #include "util.h"
@@ -719,6 +720,12 @@ static bool run_mserver_loop()
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
 
+			if (waitpid(node->pid, NULL, WNOHANG) == -1) {
+				log_write("Node %d is ded\n", node->sid);
+			} else {
+				log_write("Node %d is not ded\n", node->sid);
+			}
+
 			if (node->last_heartbeat && (difftime(curtime, node->last_heartbeat) > heartbeat_check_diff)) {
 				log_write("Node %d heartbeat check failed at %s\n", node->sid, current_time_str());
 
@@ -782,7 +789,7 @@ static bool run_mserver_loop()
 				// This continues in the message handler...
 
 				// We'll let the loop continue to potentially handle other messages first
-				break;
+				// break;
 			}
 		}
 
