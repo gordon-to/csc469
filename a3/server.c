@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -424,9 +425,7 @@ static void process_client_message(int fd)
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
-			if (fd_is_valid(forward_fd)) {
-				send_msg(forward_fd, request, request->hdr.length);
-
+			if (fd_is_valid(forward_fd) && send_msg(forward_fd, request, request->hdr.length)) {
 				char forward_resp_buffer[MAX_MSG_LEN] = {0};
 				operation_response *forward_server_resp = (operation_response *)forward_resp_buffer;
 				if (!recv_msg(forward_fd, forward_server_resp, sizeof(*forward_server_resp), MSG_OPERATION_RESP)) {
@@ -784,6 +783,11 @@ static bool run_server_loop()
 
 int main(int argc, char **argv)
 {
+	// Ignore broken pipe signal to handle write() in send_msg() crashing the program
+	// https://piazza.com/class/isb6pxw9i2n73q?cid=213
+	// http://stackoverflow.com/questions/16124019/writesocket-buff-length-makes-crash
+	signal(SIGPIPE, SIG_IGN);
+
 	if (!parse_args(argc, argv)) {
 		usage(argv);
 		return 1;
