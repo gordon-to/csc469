@@ -778,9 +778,6 @@ static bool run_server_loop()
 				}
 			}
 		}
-		if (num_ready_fds <= 0) {
-			continue;
-		}
 	}
 }
 
