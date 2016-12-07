@@ -632,6 +632,10 @@ static void *process_client_task(void *args)
 			return false;
 		}
 
+		if (num_ready_fds <= 0) {
+			continue;
+		}
+
 		// Incoming connection from a client
 		if (FD_ISSET(clients_fd, &rset)) {
 			int fd_idx = accept_connection(clients_fd, client_fd_table, MAX_CLIENT_SESSIONS);
@@ -703,17 +707,9 @@ static bool run_mserver_loop()
 			return false;
 		}
 
-		// Stop if detected EOF on stdin
-		if (FD_ISSET(fileno(stdin), &rset)) {
-			char buffer[1024];
-			if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-				return true;
-			}
-		}
-
+		// Failure detection and recovery
 		curtime = time(NULL);
 
-		// Failure detection and recovery
 		// Need to go through the list of servers and figure out which servers have not sent a heartbeat message yet
 		// within the timeout interval. Keep information in the server_node structure regarding when was the last
 		// heartbeat received from a server and compare to current time. Initiate recovery if discovered a failure.
@@ -793,9 +789,16 @@ static bool run_mserver_loop()
 			}
 		}
 
-		if (num_ready_fds <= 0 ) {
-			// Due to time out
+		if (num_ready_fds <= 0) {
 			continue;
+		}
+
+		// Stop if detected EOF on stdin
+		if (FD_ISSET(fileno(stdin), &rset)) {
+			char buffer[1024];
+			if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+				return true;
+			}
 		}
 
 		// Check for any messages from connected servers
@@ -812,9 +815,6 @@ static bool run_mserver_loop()
 					break;
 				}
 			}
-		}
-		if (num_ready_fds <= 0) {
-			continue;
 		}
 	}
 }
