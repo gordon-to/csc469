@@ -12,7 +12,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-// #include <sys/wait.h>
 
 #include "defs.h"
 #include "util.h"
@@ -467,7 +466,6 @@ static bool init_servers()
 	return true;
 }
 
-
 // Connection will be closed after calling this function regardless of result
 static void process_client_message(int fd)
 {
@@ -509,28 +507,21 @@ static void process_client_message(int fd)
 }
 
 static void handle_switch_primary(int Saa, int Sb) {
-	/*
-	12. M halts any further client requests for the set X until the swap
-	(of Saa taking over as primary for X) is finalized. It can still service
-	client requests for any other keys.
-	*/
+	// 12. M halts any further client requests for the set X until the swap (of Saa taking
+	// over as primary for X) is finalized. It can still service client requests for any other keys
 	server_nodes[Saa].ignore_put = true;
 	server_nodes[Sb].ignore_put = true;
 
-	/*
-	13. M sends Sb a SWITCH PRIMARY message, to indicate that it should flush
-	any in-flight PUT requests and ignore any further PUT requests for set X.
-	*/
+	// 13. M sends Sb a SWITCH PRIMARY message, to indicate that it should flush
+	// any in-flight PUT requests and ignore any further PUT requests for set X
 	send_request(Sb, Saa, SWITCH_PRIMARY);
 
 	if (!send_set_secondary(Saa)) {
 		return;
 	}
 
-	/*
-	16. M receives an acknowledgment message and marks Saa as the new primary for
-	set X, then resumes responding to client requests for keys that fall into set X.
-	*/
+	// 16. M receives an acknowledgment message and marks Saa as the new primary for
+	// set X, then resumes responding to client requests for keys that fall into set X
 	server_nodes[Saa].ignore_put = false;
 	server_nodes[Sb].ignore_put = false;
 
@@ -557,10 +548,8 @@ static bool process_server_message(int fd)
 		}
 
 		case UPDATED_PRIMARY: {
-			/*
-			9. M receives Sb's UPDATED-PRIMARY message and awaits on confirmation
-			from Sc as well. If it has already arrived, then it can now skip to step 12.
-			*/
+			// 9. M receives Sb's UPDATED-PRIMARY message and awaits on confirmation
+			// from Sc as well. If it has already arrived, then it can now skip to step 12
 			int Sb = request->server_id;
 			int Saa = primary_server_id(Sb, num_servers);
 			server_nodes[Saa].updated_primary = true;
@@ -577,9 +566,7 @@ static bool process_server_message(int fd)
 		}
 
 		case UPDATED_SECONDARY: {
-			/*
-			11. M receives Sc's UPDATED-SECONDARY confirmation message.
-			*/
+			// 11. M receives Sc's UPDATED-SECONDARY confirmation message
 			int Sc = request->server_id;
 			int Saa = secondary_server_id(Sc, num_servers);
 			int Sb = secondary_server_id(Saa, num_servers);
@@ -716,12 +703,6 @@ static bool run_mserver_loop()
 		for (int i = 0; i < num_servers; i++) {
 			server_node *node = &(server_nodes[i]);
 
-			// if (waitpid(node->pid, NULL, WNOHANG) == -1) {
-			// 	log_write("Node %d is ded\n", node->sid);
-			// } else {
-			// 	log_write("Node %d is not ded\n", node->sid);
-			// }
-
 			if (node->last_heartbeat && (difftime(curtime, node->last_heartbeat) > heartbeat_check_diff)) {
 				log_write("Node %d heartbeat check failed at %s\n", node->sid, current_time_str());
 
@@ -737,19 +718,13 @@ static bool run_mserver_loop()
 				uint16_t cport_temp = node->cport;
 				uint16_t mport_temp = node->mport;
 
-				// Make sure that you properly account for the newly opened connections
-				// (socket fds) to/from the replacement server, including the fd sets
-				// used in select() in the main mserver loop, and some other places.
-				// close_safe(&(node->socket_fd_in));
-
-				/*
-				1. M detects failure, spawns a new server Saa to replace the failed server Sa.
-				*/
+				// 1. M detects failure, spawns a new server Saa to replace the failed server Sa
 				if (spawn_server(Saa) < 0) {
 					fprintf(stderr, "Spawning reconstruction server %d failed\n", node->sid);
 					continue;
 				}
 
+				// Account for the newly opened connections to/from the replacement server
 				FD_SET(node->socket_fd_in, &allset);
 				maxfd = max(maxfd, node->socket_fd_in);
 
@@ -765,20 +740,14 @@ static bool run_mserver_loop()
 				server_nodes[Saa].updated_secondary = false;
 				server_nodes[Saa].ignore_put = false;
 
-				/*
-				2. M sends Sb a UPDATE-PRIMARY message containing information on Saa.
-				*/
+				// 2. M sends Sb a UPDATE-PRIMARY message containing information on Saa
 				int Sb = secondary_server_id(Saa, num_servers);
 				send_request(Sb, Saa, UPDATE_PRIMARY);
 
-				/*
-				4. M marks Sb as the primary for set X.
-				This is done by sending a failed/reconstructed server PUT/GET to secondary
-				*/
+				// 4. M marks Sb as the primary for set X
+				// This is done by sending a failed/reconstructed server PUT/GET to secondary
 
-				/*
-				5. M sends Sc a UPDATE-SECONDARY message containing information on Saa.
-				*/
+				// 5. M sends Sc a UPDATE-SECONDARY message containing information on Saa
 				int Sc = primary_server_id(Saa, num_servers);
 				send_request(Sc, Saa, UPDATE_SECONDARY);
 
