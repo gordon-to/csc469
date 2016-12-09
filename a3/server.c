@@ -153,8 +153,8 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	// Send PUT request to new server (Saa)
 	int new_fd = send_primary ? secondary_fd : primary_fd;
 
-	char buffer[MAX_MSG_LEN] = {0};
-	operation_response *response = (operation_response *)buffer;
+	char resp_buffer[MAX_MSG_LEN] = {0};
+	operation_response *response = (operation_response *)resp_buffer;
 	if (!send_msg(new_fd, request, sizeof(*request) + value_sz) ||
 	    !recv_msg(new_fd, response, sizeof(*response), MSG_OPERATION_RESP))
 	{
