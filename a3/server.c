@@ -438,13 +438,15 @@ static void process_client_message(int fd)
 				operation_response *forward_server_resp = (operation_response *)forward_resp_buffer;
 				if (!recv_msg(forward_fd, forward_server_resp, sizeof(*forward_server_resp), MSG_OPERATION_RESP)) {
 					hash_unlock(table, request->key);
-					return;
+					response->status = SERVER_FAILURE;
+					break;
 				}
 
 				if (forward_server_resp->status != SUCCESS) {
 					fprintf(stderr, "Server %d failed PUT forwarding (%s)\n", server_id, op_status_str[forward_server_resp->status]);
 					hash_unlock(table, request->key);
-					return;
+					response->status = SERVER_FAILURE;
+					break;
 				}
 			}
 
