@@ -151,7 +151,17 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 
 	// Send PUT request to new server (Saa)
 	int new_fd = send_primary ? secondary_fd : primary_fd;
-	send_msg(new_fd, request, sizeof(*request) + value_sz);
+	server_ctrl_response response = {0};
+	if (!send_msg(new_fd, request, sizeof(*request) + value_sz) ||
+	    !recv_msg(new_fd, response, sizeof(response), MSG_LOCATE_RESP))
+	{
+		// Just die if something went wrong
+		exit(1);
+	}
+
+	if (response.status != CTRLREQ_SUCCESS) {
+		exit(1);
+	}
 }
 
 // Sends a set to a replacement server for recovery
