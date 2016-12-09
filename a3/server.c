@@ -152,15 +152,17 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 
 	// Send PUT request to new server (Saa)
 	int new_fd = send_primary ? secondary_fd : primary_fd;
-	server_ctrl_response response = {0};
+
+	char buffer[MAX_MSG_LEN] = {0};
+	operation_response *response = (operation_response *)buffer;
 	if (!send_msg(new_fd, request, sizeof(*request) + value_sz) ||
-	    !recv_msg(new_fd, &response, sizeof(response), MSG_LOCATE_RESP))
+	    !recv_msg(new_fd, response, sizeof(*response), MSG_OPERATION_RESP))
 	{
 		// Just die if something went wrong
 		exit(1);
 	}
 
-	if (response.status != CTRLREQ_SUCCESS) {
+	if (response->status != SUCCESS) {
 		exit(1);
 	}
 }
