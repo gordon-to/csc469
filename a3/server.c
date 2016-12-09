@@ -420,8 +420,6 @@ static void process_client_message(int fd)
 				break;
 			}
 
-			hash_unlock(table, request->key);
-
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
 			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
@@ -439,6 +437,8 @@ static void process_client_message(int fd)
 					return;
 				}
 			}
+
+			hash_unlock(table, request->key);
 
 			// Need to free the old value (if there was any)
 			if (old_value != NULL) {
