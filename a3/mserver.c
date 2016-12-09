@@ -594,7 +594,7 @@ static bool process_server_message(int fd)
 
 
 static const int select_timeout_interval = 2; // in seconds
-static const int heartbeat_check_diff = 5;    // in seconds
+static const int heartbeat_check_diff = 3;    // in seconds
 
 static void *process_client_task(void *args)
 {
