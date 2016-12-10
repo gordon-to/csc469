@@ -110,7 +110,7 @@ static const int heartbeat_interval = 1;  // in seconds
 static pthread_t heartbeat_thread;
 
 // For recovery flow
-pthread_mutex_t state_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t state_lock = PTHREAD_MUTEX_INITIALIZER;  // For updating state
 static kv_server_state state;
 static bool send_primary;
 static pthread_t send_replacement_primary_thread;
@@ -371,8 +371,6 @@ static void process_client_message(int fd)
 
 	// When normal or updating secondary (Sc), we're targetting the primary set
 	// If this is Sb, then we can target either set
-	pthread_mutex_lock(&(state_lock));
-
 	if ((state != KV_UPDATING_PRIMARY && key_srv_id != server_id) ||
 	    (state == KV_UPDATING_PRIMARY && key_srv_id != server_id && secondary_srv_id != server_id)) {
 		fprintf(stderr, "sid %d: Invalid client key %s sid %d\n", server_id, key_to_str(request->key), key_srv_id);
@@ -385,8 +383,6 @@ static void process_client_message(int fd)
 	bool secondary_as_primary = (state == KV_UPDATING_PRIMARY && secondary_srv_id == server_id);
 
 	hash_table *table = secondary_as_primary ? &secondary_hash : &primary_hash;
-
-	pthread_mutex_unlock(&(state_lock));
 
 	// Process the request based on its type
 	switch (request->type) {
