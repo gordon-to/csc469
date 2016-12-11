@@ -710,14 +710,6 @@ static bool run_mserver_loop()
 				node->state = KV_SERVER_FAILED;
 				int Saa = i;
 
-				char host_name_temp[HOST_NAME_MAX];
-				strncpy(host_name_temp, node->host_name, HOST_NAME_MAX);
-
-				// Servers/client/mserver port numbers
-				uint16_t sport_temp = node->sport;
-				uint16_t cport_temp = node->cport;
-				uint16_t mport_temp = node->mport;
-
 				// 1. M detects failure, spawns a new server Saa to replace the failed server Sa
 				if (spawn_server(Saa) < 0) {
 					fprintf(stderr, "Spawning reconstruction server %d failed\n", node->sid);
@@ -727,11 +719,6 @@ static bool run_mserver_loop()
 				// Account for the newly opened connections to/from the replacement server
 				FD_SET(node->socket_fd_in, &allset);
 				maxfd = max(maxfd, node->socket_fd_in);
-
-				strncpy(server_nodes[Saa].host_name, host_name_temp, HOST_NAME_MAX);
-				server_nodes[Saa].sport = sport_temp;
-				server_nodes[Saa].cport = cport_temp;
-				server_nodes[Saa].mport = mport_temp;
 
 				server_nodes[Saa].last_heartbeat = curtime;
 				server_nodes[Saa].state = KV_SERVER_RECON;
@@ -754,7 +741,7 @@ static bool run_mserver_loop()
 				// This continues in the message handler...
 
 				// We'll let the loop continue to potentially handle other messages first
-				// break;
+				break;
 			}
 		}
 
