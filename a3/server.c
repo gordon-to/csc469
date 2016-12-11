@@ -151,15 +151,15 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	strncpy(request->value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
-	char resp_buffer[MAX_MSG_LEN] = {0};
-	operation_response *response = (operation_response *)resp_buffer;
+	char recv_buffer[MAX_MSG_LEN] = {0};
 	if (!send_msg(replacement_fd, request, sizeof(*request) + value_sz) ||
-	    !recv_msg(replacement_fd, response, sizeof(*response), MSG_OPERATION_RESP))
+	    !recv_msg(replacement_fd, recv_buffer, sizeof(recv_buffer), MSG_OPERATION_RESP))
 	{
 		// Just die if something went wrong
 		exit(1);
 	}
 
+	operation_response *response = (operation_response *)recv_buffer;
 	if (response->status != SUCCESS) {
 		exit(1);
 	}
