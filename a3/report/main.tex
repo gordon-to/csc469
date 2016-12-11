@@ -1,0 +1,97 @@
+\documentclass[11pt,twoside]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[nott,notextcomp]{kpfonts}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{scrextend}
+
+\usepackage{graphicx,epstopdf}
+\epstopdfsetup{update}
+\DeclareGraphicsExtensions{.ps}
+\epstopdfDeclareGraphicsRule{.ps}{pdf}{.pdf}{ps2pdf -dEPSCrop -dNOSAFER #1 \OutputFile}
+
+\newcommand{\inlinecode}{\texttt}
+
+% Some breathing room between paragraphs
+% \setlength{\parskip}{.5\baselineskip}%
+
+% Page layout: stretch text to fill up page.
+\addtolength\footskip{.25\headheight}
+\flushbottom
+
+% Headings.
+\pagestyle{fancy}
+\let\headrule\empty
+\let\footrule\empty
+\lhead{\scshape CSC\,469}
+\chead{\large\scshape Assignment \#\,3}
+\rhead{\scshape Fall 2016}
+\cfoot{\scshape page \thepage\space of \pageref{LastPage}}
+
+\begin{document}
+\title{CSC469 A3: Fault Tolerance}
+\author{\textsc{Cheung}, Eugene Yue-Hin (cheun550) and \textsc{Snyder}, Eric (snyderer)}
+\date{2016-12-07}
+\maketitle
+
+\section{Description}
+Our key-value service works largely as you would expect, considering the starter code given. It consists of a metadata server and several key-value servers which service PUT/GET requests from clients. The metadata server spawns a series of key-value servers that it can keep track of by periodically sending heartbeat messages to the servers. Should a server fail to return a heartbeat message after a certain amount of time, it is considered to have failed and the metadata server will initiate the recovery mode. The recovery mode works as detailed in the handout: it spawns a new server, instructs the secondary server of the failed server and the primary server that the failed server acted as a secondary server for to restore their data to the new server, redirects requests for the failed server to the secondary server until the recovery is finished, and upon finishing temporarily disables requests while the new server takes over and normal operations resume. This is accomplished through sending requests to the servers to indicate which steps to perform and where to send recovery data to.
+
+\subsection{Alternatives Considered}
+As far as the basic features go, there wasn't much in terms of alternatives to try since we had to implement the basic functionality required by the assignment. Both the metadata and key-value servers service client request messages on a separate thread in an attempt to improve the scalability/performance.
+
+\section{Conceptual Questions}
+\begin{enumerate}
+    \item What happens if a server could run out of storage space for its keys? Rejecting client requests due to being out-of-memory is not a practical way to handle this case (as the starter code does). How would a real-world key-value store handle such a case? Explain your design decision, potential alternatives, and discuss their merits or drawbacks.
+    
+    In our server if there isn't enough space for a key it will raise an error and drop the key. Presumably a real world server would attempt to distribute the data rather than contain any given replica on a single node so when the next place that it wants to write to runs out of space, it can just write it in another node that contains part of the data replica. In the case that you still wanted to store the entire replica on one node you would probably still need to write extra keys to another node, but the extra data would be written to an overflow node somewhere and filled back into the original node when space was created.
+
+
+    \item What happens if the items in a primary replica were striped across several servers, instead of duplicated on one server only? Explain how this would affect your design, in terms of performance, consistency, resilience in the face of failures, and failure recovery approach.
+    
+    Scattering the replica across several servers would presumably improve performance, since currently when a single server fails the backup server now has to service all requests for both its primary and secondary data sets while also restoring that data. By splitting up the data to multiple servers you can diffuse the load across the entire database instead of potentially tripling the amount of access happening to one single server (their primary set, their secondary set that is now the temporary primary set, and sending that primary set to the reconstruction server). Like below, in the case where $n$ replicas fail, you would only lose a small fragment of the data rather than the entire set because the replicas are spread out across different servers. In the case of some failure the recovery process becomes a bit more complicated because data has to be sent to/from multiple places and instead of one server sending a request to another it would instead have to send multiple requests and multiple servers will have to create separate threads to send the recovery data.
+    
+    
+    \item What happens if failures could happen during recovery? Explain your rationale.
+    
+    During recovery there are three servers involved: $Saa$, $Sb$, and $Sc$ (with $Saa$ being the replacement for the failed $Sa$). If $Saa$ were to fail, another server can just be spawned and the process can be restarted pretty easily since data is only being copied to $Saa$ and nothing is lost, if it were to fail, besides time. For $Sb$ and $Sc$, failure is a bit more concerning because they're currently the only existing copies of the data sets. As $Sa$ contained primary set $X$ and secondary set $Y$ this means that when it fails, $Sb$ will have the secondary copy of $X$ and $Sc$ will have the primary copy of $Y$. While the second set of data on either server has another copy somewhere else, the $X$ and $Y$ of $Sa$ will be completely gone from the overall database should either $Sb$ or $Sc$ fail while recovering $Sa$.
+    
+    At this point, $Saa$ contains a partial set of data of $X$ and/or $Y$ (depending on what failed) and the database could attempt to push on with whatever data successfully was recovered but fully recovering the data in our model would require human interaction of some kind to revive the failed server(s).
+    
+    
+    \item How many replicas would we need to tolerate $n$ failures? Explain your rationale.
+    
+    In the above example we can see that 2 replicas is enough to account for one failure, and when the second failure occurs is when the real problem occurs. Essentially you would need $n+1$ replicas to account for $n$ failures since $n$ failures implies that $n$ replicas of the data are gone, hence you would need one additional copy of the data to restore all failed replicas minimum.
+    
+    
+    \item This key-value store does replication on the critical path (PUT requests are not acknowledged to the client until the update propagates to the secondary replica(s)). If you were to change this to an eventual consistency model, how would that work? How would you design the recovery mechanism, if replication was not done on the critical path?
+    
+    If we were to make this change, the PUT requests would be acknowledged to the client after being stored to the primary replica and the data would then propagate to other replicas. This means that the primary server is always up to date and changes are sent to the secondary replica without waiting for the secondary server to finish with them. The secondary server would eventually finish handling those requests and be up to date with the primary replica but at any given time they may be out of sync. If a failure occurred in the primary server, the secondary server would first wait for all the queued requests it may have to be handled, then start recovering to a new primary set. Generally the only case where inputs may be lost is if the primary server is in the process of sending data to the secondary replica when the failure occurs. At this point the user would have already received an acknowledgement but the resulting reconstructed data set wouldn't contain that data. 
+    
+    
+    \item Discuss your thoughts on relaxing the static membership assumption, and scaling the system "elastically". In other words, if nodes can be added dynamically in response to increasing load, or if nodes can be taken down when underloaded, what implications would this have on the regular operation and recovery?
+    
+    Dynamically scaling the system would result in the data becoming more compressed (spread over fewer nodes) during low activity and more spread out during high activity. The performance for the user would improve during periods of high activity as spreading out among multiple nodes reduces the risk of bottlenecks at any one node as user accesses are more spread out while also being more efficient during low activity as there are fewer nodes running unnecessarily. Failure during a low activity time would take longer to recover from (as there would be more data on any node) but as long as a replica exists, it could still recover from it and since there are fewer accesses during this period the large amount of data to be recovered wouldn't congest an already congested network. During periods of high activity the opposite is true: less data would need to be recovered and thus avoid adding more congestion to the network when its already busy. The process of starting or stopping a node would be similar to reconstructing a node, just requiring data to be moved from one place to another and updating the node for primary requests depending on where the data goes. 
+\end{enumerate}
+
+\begin{thebibliography}{3}
+
+% http://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+\bibitem{dynamo} 
+Decandia, Giuseppe, Deniz Hastorun, Madan Jampani, Gunavardhan Kakulapati, Avinash Lakshman, Alex Pilchin, Swaminathan Sivasubramanian, Peter Vosshall, and Werner Vogels. "Dynamo." \textit{ACM SIGOPS Operating Systems Review} 41.6 (2007): 205. Web. 1 Dec. 2016.
+
+% https://memcached.org/
+\bibitem{memcached}
+"Memcached - a Distributed Memory Object Caching System." \textit{Memcached - a Distributed Memory Object Caching System}. N.p., n.d. Web. 01 Dec. 2016.
+
+% https://redis.io/
+\bibitem{redis}
+"Redis." \textit{Redis}. N.p., n.d. Web. 01 Dec. 2016.
+
+\end{thebibliography}
+
+\end{document}
