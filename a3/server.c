@@ -84,7 +84,7 @@ static int my_mservers_fd = -1;
 static int client_fd_table[MAX_CLIENT_SESSIONS];
 
 // Store fds for connected servers
-static int server_fd_table[3] = {-1, -1, -1};
+static int server_fd_table[4] = {-1, -1, -1, -1};
 
 
 // Storage for primary key set
@@ -317,7 +317,7 @@ static void cleanup()
 	for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
 		close_safe(&(client_fd_table[i]));
 	}
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		close_safe(&(server_fd_table[i]));
 	}
 
@@ -756,7 +756,7 @@ static bool run_server_loop()
 
 		// Incoming connection from a key-value server
 		if (FD_ISSET(my_servers_fd, &rset)) {
-			int fd_idx = accept_connection(my_servers_fd, server_fd_table, 3);
+			int fd_idx = accept_connection(my_servers_fd, server_fd_table, 4);
 			if (fd_idx >= 0) {
 				FD_SET(server_fd_table[fd_idx], &allset);
 				maxfd = max(maxfd, server_fd_table[fd_idx]);
@@ -784,7 +784,7 @@ static bool run_server_loop()
 		}
 
 		// Check for any messages from connected key-value servers
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 4; i++) {
 			if ((server_fd_table[i] != -1) && FD_ISSET(server_fd_table[i], &rset)) {
 				if (!process_server_message(server_fd_table[i])) {
 					// Received an invalid message (or the last valid message), close the connection
