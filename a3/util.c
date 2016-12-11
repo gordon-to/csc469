@@ -442,7 +442,7 @@ bool send_msg(int fd, void *buffer, size_t length)
 	// Write the message to the socket
 	ssize_t bytes = send(fd, buffer, length, MSG_NOSIGNAL);
 	if (bytes < 0) {
-		log_perror("write");
+		log_perror("send");
 		return false;
 	}
 	assert((size_t)bytes == length);

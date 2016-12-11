@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -803,6 +804,11 @@ static bool run_server_loop()
 
 int main(int argc, char **argv)
 {
+	// Ignore broken pipe signal to handle write() in send_msg() crashing the program
+	// https://piazza.com/class/isb6pxw9i2n73q?cid=213
+	// http://stackoverflow.com/questions/16124019/writesocket-buff-length-makes-crash
+	signal(SIGPIPE, SIG_IGN);
+
 	if (!parse_args(argc, argv)) {
 		usage(argv);
 		return 1;
