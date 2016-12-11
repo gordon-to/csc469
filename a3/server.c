@@ -85,7 +85,7 @@ static int my_mservers_fd = -1;
 static int client_fd_table[MAX_CLIENT_SESSIONS];
 
 // Store fds for connected servers
-static int server_fd_table[2] = {-1, -1};
+static int server_fd_table[4] = {-1, -1, -1, -1};
 
 
 // Storage for primary key set
@@ -115,6 +115,7 @@ static kv_server_state state;
 static bool send_primary;
 static pthread_t send_replacement_primary_thread;
 static pthread_t send_replacement_secondary_thread;
+static int replacement_fd = -1;
 
 
 static void cleanup();
@@ -151,12 +152,10 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	strncpy(request->value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
-	int new_fd = send_primary ? secondary_fd : primary_fd;
-
 	char resp_buffer[MAX_MSG_LEN] = {0};
 	operation_response *response = (operation_response *)resp_buffer;
-	if (!send_msg(new_fd, request, sizeof(*request) + value_sz) ||
-	    !recv_msg(new_fd, response, sizeof(*response), MSG_OPERATION_RESP))
+	if (!send_msg(replacement_fd, request, sizeof(*request) + value_sz) ||
+	    !recv_msg(replacement_fd, response, sizeof(*response), MSG_OPERATION_RESP))
 	{
 		// Just die if something went wrong
 		exit(1);
@@ -194,8 +193,7 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 
 	pthread_t *replacement_thread = NULL;
 
-	int new_fd;
-	if ((new_fd = connect_to_server(host_name, port)) < 0) {
+	if ((replacement_fd = connect_to_server(host_name, port)) < 0) {
 		fprintf(stderr, "send_to_replacement: error connecting to new secondary_fd\n");
 		goto send_replacement_failed;
 	}
@@ -204,14 +202,12 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 	if (send_primary) {
 		// Sc: connect to new Saa as secondary
 		close_safe(&secondary_fd);
-		secondary_fd = new_fd;
 
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
 	} else {
 		close_safe(&primary_fd);
-		primary_fd = new_fd;
 
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
@@ -322,7 +318,7 @@ static void cleanup()
 	for (int i = 0; i < MAX_CLIENT_SESSIONS; i++) {
 		close_safe(&(client_fd_table[i]));
 	}
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 4; i++) {
 		close_safe(&(server_fd_table[i]));
 	}
 
@@ -437,9 +433,14 @@ static void process_client_message(int fd)
 				break;
 			}
 
+			// Need to free the old value (if there was any)
+			if (old_value != NULL) {
+				free(old_value);
+			}
+
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
-			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
+			int forward_fd = state != KV_SERVER_ONLINE ? replacement_fd : secondary_fd;
 			if (fd_is_valid(forward_fd) && send_msg(forward_fd, request, request->hdr.length)) {
 				char forward_resp_buffer[MAX_MSG_LEN] = {0};
 				operation_response *forward_server_resp = (operation_response *)forward_resp_buffer;
@@ -458,11 +459,6 @@ static void process_client_message(int fd)
 			}
 
 			hash_unlock(table, request->key);
-
-			// Need to free the old value (if there was any)
-			if (old_value != NULL) {
-				free(old_value);
-			}
 
 			response->status = SUCCESS;
 			break;
@@ -626,6 +622,12 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 				}
 			}
 
+			if (send_primary) {
+				secondary_fd = replacement_fd;
+			} else {
+				primary_fd = replacement_fd;
+			}
+
 			// 15. Do the switch and send a confirmation message
 			response.status = CTRLREQ_SUCCESS;
 
@@ -755,7 +757,7 @@ static bool run_server_loop()
 
 		// Incoming connection from a key-value server
 		if (FD_ISSET(my_servers_fd, &rset)) {
-			int fd_idx = accept_connection(my_servers_fd, server_fd_table, 2);
+			int fd_idx = accept_connection(my_servers_fd, server_fd_table, 4);
 			if (fd_idx >= 0) {
 				FD_SET(server_fd_table[fd_idx], &allset);
 				maxfd = max(maxfd, server_fd_table[fd_idx]);
@@ -783,7 +785,7 @@ static bool run_server_loop()
 		}
 
 		// Check for any messages from connected key-value servers
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 4; i++) {
 			if ((server_fd_table[i] != -1) && FD_ISSET(server_fd_table[i], &rset)) {
 				if (!process_server_message(server_fd_table[i])) {
 					// Received an invalid message (or the last valid message), close the connection
