@@ -440,7 +440,7 @@ bool send_msg(int fd, void *buffer, size_t length)
 	hton_msg_hdr(hdr);
 
 	// Write the message to the socket
-	ssize_t bytes = write(fd, buffer, length);
+	ssize_t bytes = send(fd, buffer, length, MSG_NOSIGNAL);
 	if (bytes < 0) {
 		log_perror("write");
 		return false;
