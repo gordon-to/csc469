@@ -115,7 +115,6 @@ static kv_server_state state;
 static bool send_primary;
 static pthread_t send_replacement_primary_thread;
 static pthread_t send_replacement_secondary_thread;
-static int replacement_fd = -1;
 
 
 static void cleanup();
@@ -152,9 +151,10 @@ static void send_table_iterator_f(const char key[KEY_SIZE], void *value, size_t 
 	strncpy(request->value, value, value_sz);
 
 	// Send PUT request to new server (Saa)
+	int new_fd = send_primary ? secondary_fd : primary_fd;
 	char recv_buffer[MAX_MSG_LEN] = {0};
-	if (!send_msg(replacement_fd, request, sizeof(*request) + value_sz) ||
-	    !recv_msg(replacement_fd, recv_buffer, sizeof(recv_buffer), MSG_OPERATION_RESP))
+	if (!send_msg(new_fd, request, sizeof(*request) + value_sz) ||
+	    !recv_msg(new_fd, recv_buffer, sizeof(recv_buffer), MSG_OPERATION_RESP))
 	{
 		// Just die if something went wrong
 		exit(1);
@@ -193,7 +193,8 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 
 	pthread_t *replacement_thread = NULL;
 
-	if ((replacement_fd = connect_to_server(host_name, port)) < 0) {
+	int new_fd;
+	if ((new_fd = connect_to_server(host_name, port)) < 0) {
 		fprintf(stderr, "send_to_replacement: error connecting to new secondary_fd\n");
 		goto send_replacement_failed;
 	}
@@ -202,12 +203,14 @@ static int send_to_replacement(const char *host_name, uint16_t port)
 	if (send_primary) {
 		// Sc: connect to new Saa as secondary
 		close_safe(&secondary_fd);
+		secondary_fd = new_fd;
 
 		// [UPDATE_SECONDARY] Sending primary: this primary is the recovering server's secondary set
 		state = KV_UPDATING_SECONDARY;
 		replacement_thread = &send_replacement_secondary_thread;
 	} else {
 		close_safe(&primary_fd);
+		primary_fd = new_fd;
 
 		// [UPDATE_PRIMARY] Sending secondary: this secondary is the recovering server's primary set
 		state = KV_UPDATING_PRIMARY;
@@ -365,6 +368,8 @@ static void process_client_message(int fd)
 	int key_srv_id = key_server_id(request->key, num_servers);
 	int secondary_srv_id = secondary_server_id(key_srv_id, num_servers);
 
+	pthread_mutex_lock(&(state_lock));
+
 	// When normal or updating secondary (Sc), we're targetting the primary set
 	// If this is Sb, then we can target either set
 	if ((state != KV_UPDATING_PRIMARY && key_srv_id != server_id) ||
@@ -440,7 +445,7 @@ static void process_client_message(int fd)
 
 			// Forward the PUT request to the secondary replica
 			// 7. If in recovery mode, PUT requests are sent synchronously to the new server too
-			int forward_fd = state != KV_SERVER_ONLINE ? replacement_fd : secondary_fd;
+			int forward_fd = secondary_as_primary ? primary_fd : secondary_fd;
 			if (fd_is_valid(forward_fd) && send_msg(forward_fd, request, request->hdr.length)) {
 				char forward_resp_buffer[MAX_MSG_LEN] = {0};
 				operation_response *forward_server_resp = (operation_response *)forward_resp_buffer;
@@ -471,6 +476,7 @@ static void process_client_message(int fd)
 	}
 
 	// Send reply to the client
+	pthread_mutex_unlock(&(state_lock));
 	send_msg(fd, response, sizeof(*response) + value_sz);
 }
 
@@ -612,6 +618,7 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 
 		// Only Sb should get this
 		case SWITCH_PRIMARY: {
+			pthread_mutex_lock(&(state_lock));
 			state = KV_SWITCHING_PRIMARY;
 
 			// 14. Flush all remaining updates to new server
@@ -622,17 +629,11 @@ static bool process_mserver_message(int fd, bool *shutdown_requested)
 				}
 			}
 
-			if (send_primary) {
-				secondary_fd = replacement_fd;
-			} else {
-				primary_fd = replacement_fd;
-			}
-
 			// 15. Do the switch and send a confirmation message
 			response.status = CTRLREQ_SUCCESS;
 
 			state = KV_SERVER_ONLINE;
-
+			pthread_mutex_unlock(&(state_lock));
 			break;
 		}
 
